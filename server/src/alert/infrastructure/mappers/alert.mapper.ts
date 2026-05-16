@@ -8,7 +8,7 @@ export class AlertMapper {
       raw.tipo,
       raw.nivel,
       raw.mensaje,
-      raw.leida,
+      raw.resuelta,
       raw.created_at,
     );
   }

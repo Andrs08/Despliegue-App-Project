@@ -4,7 +4,7 @@ import { PrismaAlertRepository } from './infrastructure/persistence/prisma-alert
 import { CreateAlertUseCase } from './application/use-cases/create-alert.use-case';
 import { GetAlertsUseCase } from './application/use-cases/get-alerts.use-case';
 import { GetLotAlertsUseCase } from './application/use-cases/get-lot-alerts.use-case';
-import { MarkAlertAsReadUseCase } from './application/use-cases/mark-alert-as-read.use-case';
+import { MarkAlertAsResolvedUseCase } from './application/use-cases/mark-alert-as-resolved.use-case';
 import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
@@ -42,10 +42,10 @@ import { PrismaModule } from 'src/prisma/prisma.module';
     },
 
     {
-      provide: MarkAlertAsReadUseCase,
+      provide: MarkAlertAsResolvedUseCase,
 
       useFactory: (repository: PrismaAlertRepository) =>
-        new MarkAlertAsReadUseCase(repository),
+        new MarkAlertAsResolvedUseCase(repository),
 
       inject: [PrismaAlertRepository],
     },

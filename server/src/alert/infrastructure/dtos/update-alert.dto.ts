@@ -1,4 +1,4 @@
 
 export class UpdateAlertDTO {
-  leida!: boolean;
+  resuelta!: boolean;
 }

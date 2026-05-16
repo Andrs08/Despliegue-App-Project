@@ -16,7 +16,7 @@ export class PrismaAlertRepository implements AlertRepository {
         tipo: alerta.tipo,
         nivel: alerta.nivel,
         mensaje: alerta.mensaje,
-        leida: false,
+        resuelta: false,
       },
     });
     return AlertMapper.toDomain(created);
@@ -43,13 +43,13 @@ export class PrismaAlertRepository implements AlertRepository {
     return alertas.map(AlertMapper.toDomain);
   }
 
-  async markAsRead(id: string): Promise<Alert> {
+  async markAsResolved(id: string): Promise<Alert> {
     const alerta = await this.prisma.alerta.update({
       where: {
         id,
       },
       data: {
-        leida: true,
+        resuelta: true,
       },
     });
 

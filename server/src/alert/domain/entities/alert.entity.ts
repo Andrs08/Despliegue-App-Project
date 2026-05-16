@@ -5,7 +5,7 @@ export class Alert {
     public tipo: string,
     public nivel: string,
     public mensaje: string,
-    public leida: boolean = false,
+    public resuelta: boolean = false,
     public createdAt?: Date,
   ) {}
 }

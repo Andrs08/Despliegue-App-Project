@@ -2,7 +2,7 @@ import { Controller, Get, Put, Post, Param, Body } from '@nestjs/common';
 import { CreateAlertUseCase } from '../../application/use-cases/create-alert.use-case';
 import { GetAlertsUseCase } from '../../application/use-cases/get-alerts.use-case';
 import { GetLotAlertsUseCase } from '../../application/use-cases/get-lot-alerts.use-case';
-import { MarkAlertAsReadUseCase } from '../../application/use-cases/mark-alert-as-read.use-case';
+import { MarkAlertAsResolvedUseCase } from '../../application/use-cases/mark-alert-as-resolved.use-case';
 import { CreateAlertDTO } from '../dtos/create-alert.dto';
 
 @Controller('alerts')
@@ -11,7 +11,7 @@ export class AlertController {
     private createUseCase: CreateAlertUseCase,
     private getAlertsUseCase: GetAlertsUseCase,
     private getLotAlertsUseCase: GetLotAlertsUseCase,
-    private markAsReadUseCase: MarkAlertAsReadUseCase,
+    private markAsResolvedUseCase: MarkAlertAsResolvedUseCase,
   ) {}
 
   @Post()
@@ -34,6 +34,6 @@ export class AlertController {
 
   @Put(':id/read')
   markAsRead(@Param('id') id: string) {
-    return this.markAsReadUseCase.execute(id);
+    return this.markAsResolvedUseCase.execute(id);
   }
 }
