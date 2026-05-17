@@ -20,10 +20,12 @@ export class CreateStageRecordUseCase {
     );
 
     const savedRecord = await this.repository.create(record);
+    if (!savedRecord) throw new Error('Error en la creacion del registro');
     const alerts = await this.evaluateStageRecord.execute(
       data.etapa_id,
       data.datos,
     );
+    if (!alerts) throw new Error('Error en la creacion de las alertas');
 
     if (alerts.length) {
       for (const alert of alerts) {

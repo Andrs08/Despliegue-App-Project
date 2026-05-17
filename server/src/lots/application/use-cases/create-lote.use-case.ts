@@ -26,7 +26,9 @@ export class CreateLoteUseCase {
     );
 
     const savedLot = await this.loteRepo.create(lote);
+    if (!savedLot) throw new Error('Error en la creacion del lote');
     const alerts = await this.evaluateLote.execute(lote);
+    if (!alerts) throw new Error('Error en la creacion de las alertas');
 
     if (alerts.length > 0) {
       for (const alert of alerts) {
@@ -34,7 +36,7 @@ export class CreateLoteUseCase {
           loteId: lote.id,
           tipo: alert.tipo,
           nivel: alert.nivel,
-          mensaje: alert.mensaje
+          mensaje: alert.mensaje,
         });
       }
     }
