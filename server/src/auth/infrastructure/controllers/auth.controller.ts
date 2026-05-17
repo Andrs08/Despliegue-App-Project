@@ -15,7 +15,9 @@ import path from 'node:path';
 import { UpdateUserDto } from '../dtos/update-user.dto';
 import { UpdateUserUseCase } from 'src/auth/application/use-cases/update-user.use-case';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -25,10 +27,24 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @ApiOperation({
+    summary: 'Registrar usuario',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario registrado correctamente',
+  })
   register(@Body() body: RegisterDTO) {
     return this.registerUseCase.execute(body);
   }
 
+  @ApiOperation({
+    summary: 'Login de usuario',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Usuario logueado correctamente',
+  })
   @Post('login')
   login(@Body() body: LoginDTO) {
     return this.loginUseCase.execute(body);
