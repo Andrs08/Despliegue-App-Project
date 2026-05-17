@@ -5,6 +5,8 @@ import { IrrigationRules } from './domain/services/irrigation.rules';
 import { DiseaseRules } from './domain/services/disease.rules';
 import { HarvestRules } from './domain/services/harvest.rules';
 import { StageRules } from './domain/services/stage.rules';
+import { FertilizerRules } from './domain/services/fertilizer.rules';
+import { DistanceRules } from './domain/services/distance.rules';
 import { EvaluateLotUseCase } from './application/use-cases/evaluate-lot.use-case';
 import { EvaluateStageRecordUseCase } from './application/use-cases/evaluate-stage-record.use-case';
 
@@ -13,9 +15,11 @@ import { EvaluateStageRecordUseCase } from './application/use-cases/evaluate-sta
     TemperatureRules,
     DensityRules,
     IrrigationRules,
+    DistanceRules,
     DiseaseRules,
     HarvestRules,
     StageRules,
+    FertilizerRules,
 
     {
       provide: EvaluateLotUseCase,
@@ -24,12 +28,7 @@ import { EvaluateStageRecordUseCase } from './application/use-cases/evaluate-sta
         temperatureRules: TemperatureRules,
         densityRules: DensityRules,
         stageRules: StageRules,
-      ) =>
-        new EvaluateLotUseCase(
-          temperatureRules,
-          densityRules,
-          stageRules,
-        ),
+      ) => new EvaluateLotUseCase(temperatureRules, densityRules, stageRules),
 
       inject: [TemperatureRules, DensityRules, StageRules],
     },
@@ -39,16 +38,26 @@ import { EvaluateStageRecordUseCase } from './application/use-cases/evaluate-sta
 
       useFactory: (
         irrigationRules: IrrigationRules,
+        distanceRules: DistanceRules,
+        fertilizerRules: FertilizerRules,
         diseaseRules: DiseaseRules,
         harvestRules: HarvestRules,
       ) =>
         new EvaluateStageRecordUseCase(
           irrigationRules,
+          distanceRules,
+          fertilizerRules,
           diseaseRules,
           harvestRules,
         ),
 
-      inject: [IrrigationRules, DiseaseRules, HarvestRules],
+      inject: [
+        IrrigationRules,
+        DistanceRules,
+        FertilizerRules,
+        DiseaseRules,
+        HarvestRules,
+      ],
     },
   ],
 

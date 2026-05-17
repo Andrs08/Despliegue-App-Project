@@ -9,7 +9,7 @@ export class CreateStageRecordUseCase {
     private evaluateStageRecord: EvaluateStageRecordUseCase,
     private createAlert: CreateAlertUseCase,
   ) {}
- 
+
   async execute(data: any) {
     const record = new StageRecord(
       uuid(),
@@ -20,24 +20,26 @@ export class CreateStageRecordUseCase {
     );
 
     const savedRecord = await this.repository.create(record);
-    const alert = await this.evaluateStageRecord.execute(
+    const alerts = await this.evaluateStageRecord.execute(
       data.etapa_id,
       data.datos,
     );
 
-    if (alert) {
-      await this.createAlert.execute({
-        loteId: data.lote_id,
-        tipo: alert.tipo,
-        nivel: alert.nivel,
-        mensaje: alert.mensaje,
-      });
+    if (alerts.length) {
+      for (const alert of alerts) {
+        await this.createAlert.execute({
+          loteId: data.lote_id,
+          tipo: alert.tipo,
+          nivel: alert.nivel,
+          mensaje: alert.mensaje,
+        });
+      }
     }
 
     return {
       registro: savedRecord,
 
-      alerta: alert || null,
+      alerta: alerts || null,
     };
   }
 }

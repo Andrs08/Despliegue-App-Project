@@ -4,7 +4,7 @@ export class HarvestRules {
   evaluate(kgCosechados: number, hectareas: number): AgriculturalAlert | null {
     const rendimiento = kgCosechados / hectareas;
 
-    if (rendimiento < 15000) {
+    if (rendimiento < 25000) {
       return {
         tipo: 'COSECHA',
         nivel: 'MEDIO',
