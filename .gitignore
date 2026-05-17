@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 
+.vscode/
+
 # Server
 server/dist/
 server/build/

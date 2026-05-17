@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -10,6 +9,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,6 +28,20 @@ type LoginErrors = {
 };
 
 export function LoginPage() {
+  const { width, height } = useWindowDimensions();
+
+  const isSmallPhone = height < 700;
+  const horizontalPadding = width < 360 ? 24 : width < 400 ? 30 : 34;
+  const headerHeight = isSmallPhone
+    ? Math.min(height * 0.29, 215)
+    : Math.min(height * 0.32, 275);
+
+  const logoFontSize = width < 360 ? 42 : 48;
+  const titleFontSize = width < 360 ? 36 : 40;
+  const subtitleMarginBottom = isSmallPhone ? 24 : 34;
+  const forgotMarginBottom = isSmallPhone ? 26 : 36;
+  const cardPaddingTop = isSmallPhone ? 30 : 38;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -97,10 +111,10 @@ export function LoginPage() {
       return;
     }
 
-    Alert.alert(
-      "Formulario válido",
-      "El inicio de sesión está listo para conectarse."
-    );
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Dashboard" }],
+    });
   };
 
   if (!fontsLoaded) {
@@ -120,18 +134,72 @@ export function LoginPage() {
           <View style={styles.container}>
             <Image
               source={require("../../../../../assets/images/fondo.png")}
-              style={styles.headerImage}
+              style={[
+                styles.headerImage,
+                {
+                  height: headerHeight,
+                },
+              ]}
               resizeMode="cover"
             />
 
-            <View style={styles.card}>
+            <View
+              style={[
+                styles.card,
+                {
+                  paddingHorizontal: horizontalPadding,
+                  paddingTop: cardPaddingTop,
+                },
+              ]}
+            >
               <View style={styles.logoContainer}>
-                <Text style={styles.logoGreen}>Bana</Text>
-                <Text style={styles.logoYellow}>Eye</Text>
+                <Text
+                  style={[
+                    styles.logoGreen,
+                    {
+                      fontSize: logoFontSize,
+                      lineHeight: logoFontSize + 10,
+                    },
+                  ]}
+                >
+                  Bana
+                </Text>
+
+                <Text
+                  style={[
+                    styles.logoYellow,
+                    {
+                      fontSize: logoFontSize,
+                      lineHeight: logoFontSize + 10,
+                    },
+                  ]}
+                >
+                  Eye
+                </Text>
               </View>
 
-              <Text style={styles.title}>Bienvenido</Text>
-              <Text style={styles.subtitle}>inicia sesión para continuar</Text>
+              <Text
+                style={[
+                  styles.title,
+                  {
+                    fontSize: titleFontSize,
+                    lineHeight: titleFontSize + 4,
+                  },
+                ]}
+              >
+                Bienvenido
+              </Text>
+
+              <Text
+                style={[
+                  styles.subtitle,
+                  {
+                    marginBottom: subtitleMarginBottom,
+                  },
+                ]}
+              >
+                inicia sesión para continuar
+              </Text>
 
               <View style={styles.form}>
                 <View
@@ -201,7 +269,14 @@ export function LoginPage() {
                   activeOpacity={0.7}
                   onPress={() => navigation.navigate("ForgotPassword")}
                 >
-                  <Text style={styles.forgotText}>
+                  <Text
+                    style={[
+                      styles.forgotText,
+                      {
+                        marginBottom: forgotMarginBottom,
+                      },
+                    ]}
+                  >
                     ¿Olvidaste tu contraseña?
                   </Text>
                 </TouchableOpacity>
@@ -246,34 +321,31 @@ const COLORS = {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.darkBackground,
+    backgroundColor: COLORS.background,
   },
   keyboardView: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 30,
+    backgroundColor: COLORS.background,
   },
   container: {
-    width: "88%",
-    maxWidth: 390,
+    flex: 1,
+    width: "100%",
     backgroundColor: COLORS.background,
     overflow: "hidden",
   },
   headerImage: {
     width: "100%",
-    height: 270,
   },
   card: {
+    flexGrow: 1,
     marginTop: -45,
     backgroundColor: COLORS.background,
     borderTopLeftRadius: 36,
     borderTopRightRadius: 36,
-    paddingHorizontal: 34,
-    paddingTop: 38,
     paddingBottom: 45,
     alignItems: "center",
   },
@@ -284,22 +356,16 @@ const styles = StyleSheet.create({
   },
   logoGreen: {
     fontFamily: "GravitasOne_400Regular",
-    fontSize: 48,
-    lineHeight: 58,
     letterSpacing: -0.96,
     color: COLORS.green,
   },
   logoYellow: {
     fontFamily: "GravitasOne_400Regular",
-    fontSize: 48,
-    lineHeight: 58,
     letterSpacing: -0.96,
     color: COLORS.yellow,
   },
   title: {
     fontFamily: "MaidenOrange_400Regular",
-    fontSize: 40,
-    lineHeight: 42,
     letterSpacing: 0.5,
     color: COLORS.green,
     marginBottom: 2,
@@ -309,16 +375,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 22,
     color: COLORS.gray,
-    marginBottom: 34,
   },
   form: {
     width: "100%",
   },
   inputContainer: {
-    height: 52,
+    width: "100%",
+    minHeight: 52,
     backgroundColor: COLORS.background,
     borderRadius: 10,
     paddingHorizontal: 14,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
@@ -350,7 +417,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     marginTop: 4,
-    marginBottom: 36,
   },
   loginButton: {
     alignSelf: "center",

@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -9,6 +8,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -20,12 +20,22 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../../../../core/navigation/app_navigator";
+import { AppHeader } from "../../../../shared/ui/app_header";
 
 type ForgotPasswordErrors = {
   email?: string;
 };
 
 export function ForgotPasswordPage() {
+  const { width, height } = useWindowDimensions();
+
+  const isSmallPhone = height < 700;
+  const horizontalPadding = width < 360 ? 24 : width < 400 ? 32 : 44;
+  const headerHeight = Math.min(Math.max(height * 0.17, 105), 140);
+  const titleFontSize = width < 360 ? 33 : 38;
+  const cardPaddingTop = isSmallPhone ? 38 : 56;
+  const subtitleMarginBottom = isSmallPhone ? 30 : 44;
+
   const [email, setEmail] = useState("");
   const [errors, setErrors] = useState<ForgotPasswordErrors>({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -58,6 +68,7 @@ export function ForgotPasswordPage() {
 
   const handleEmailChange = (value: string) => {
     const cleanValue = value.replace(/\s/g, "").toLowerCase();
+
     setEmail(cleanValue);
 
     if (hasSubmitted) {
@@ -76,8 +87,7 @@ export function ForgotPasswordPage() {
     }
 
     navigation.navigate("VerificationCode", {
-      email,
-      flow: "forgotPassword",
+      email: email.trim(),
     });
   };
 
@@ -96,23 +106,37 @@ export function ForgotPasswordPage() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
-            <View style={styles.logoHeader}>
-              <View style={styles.logoContainer}>
-                <Text style={styles.logoGreen}>Bana</Text>
-                <Text style={styles.logoYellow}>Eye</Text>
-              </View>
-            </View>
+            <AppHeader imageHeight={headerHeight} />
 
-            <Image
-              source={require("../../../../../assets/images/fondo2.png")}
-              style={styles.headerImage}
-              resizeMode="cover"
-            />
+            <View
+              style={[
+                styles.card,
+                {
+                  paddingHorizontal: horizontalPadding,
+                  paddingTop: cardPaddingTop,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.title,
+                  {
+                    fontSize: titleFontSize,
+                    lineHeight: titleFontSize + 4,
+                  },
+                ]}
+              >
+                ¿Olvidaste tu contraseña?
+              </Text>
 
-            <View style={styles.card}>
-              <Text style={styles.title}>¿Olvidaste tu contraseña?</Text>
-
-              <Text style={styles.subtitle}>
+              <Text
+                style={[
+                  styles.subtitle,
+                  {
+                    marginBottom: subtitleMarginBottom,
+                  },
+                ]}
+              >
                 Ingresa tu correo electrónico y te enviaremos un código para que
                 puedas recuperar tu cuenta.
               </Text>
@@ -144,7 +168,12 @@ export function ForgotPasswordPage() {
                 ) : null}
 
                 <TouchableOpacity
-                  style={styles.sendButton}
+                  style={[
+                    styles.sendButton,
+                    {
+                      marginBottom: isSmallPhone ? 30 : 42,
+                    },
+                  ]}
                   activeOpacity={0.8}
                   onPress={handleSendCode}
                 >
@@ -153,10 +182,18 @@ export function ForgotPasswordPage() {
                     size={15}
                     color={COLORS.background}
                   />
+
                   <Text style={styles.sendButtonText}>Enviar código</Text>
                 </TouchableOpacity>
 
-                <View style={styles.dividerContainer}>
+                <View
+                  style={[
+                    styles.dividerContainer,
+                    {
+                      marginBottom: isSmallPhone ? 30 : 42,
+                    },
+                  ]}
+                >
                   <View style={styles.divider} />
                   <Text style={styles.dividerText}>o</Text>
                   <View style={styles.divider} />
@@ -186,7 +223,6 @@ const COLORS = {
   gray: "#959595",
   black: "#000000",
   pink: "#E4568B",
-  yellow: "#F6C94D",
   darkBackground: "#202020",
   error: "#C94C4C",
 };
@@ -194,67 +230,33 @@ const COLORS = {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.darkBackground,
+    backgroundColor: COLORS.background,
   },
   keyboardView: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 24,
+    backgroundColor: COLORS.background,
   },
   container: {
-    width: "88%",
-    maxWidth: 440,
-    minHeight: 760,
+    flex: 1,
+    width: "100%",
     backgroundColor: COLORS.background,
     overflow: "hidden",
   },
-  logoHeader: {
-    height: 75,
-    backgroundColor: COLORS.background,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logoGreen: {
-    fontFamily: "GravitasOne_400Regular",
-    fontSize: 30,
-    lineHeight: 38,
-    color: COLORS.green,
-    letterSpacing: -0.5,
-  },
-  logoYellow: {
-    fontFamily: "GravitasOne_400Regular",
-    fontSize: 30,
-    lineHeight: 38,
-    color: COLORS.yellow,
-    letterSpacing: -0.5,
-  },
-  headerImage: {
-    width: "100%",
-    height: 115,
-  },
   card: {
+    flexGrow: 1,
     marginTop: -28,
     backgroundColor: COLORS.background,
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
-    paddingHorizontal: 44,
-    paddingTop: 56,
-    paddingBottom: 50,
+    paddingBottom: 42,
     alignItems: "center",
-    minHeight: 570,
   },
   title: {
     fontFamily: "MaidenOrange_400Regular",
-    fontSize: 38,
-    lineHeight: 42,
     color: COLORS.green,
     textAlign: "center",
     marginBottom: 22,
@@ -265,7 +267,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: COLORS.gray,
     textAlign: "center",
-    marginBottom: 44,
   },
   form: {
     width: "100%",
@@ -273,10 +274,11 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: "100%",
-    height: 52,
+    minHeight: 52,
     backgroundColor: COLORS.background,
     borderRadius: 10,
     paddingHorizontal: 13,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
@@ -311,7 +313,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 22,
     marginTop: 20,
-    marginBottom: 42,
   },
   sendButtonText: {
     fontFamily: "AlfaSlabOne_400Regular",
@@ -324,7 +325,6 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 42,
   },
   divider: {
     flex: 1,

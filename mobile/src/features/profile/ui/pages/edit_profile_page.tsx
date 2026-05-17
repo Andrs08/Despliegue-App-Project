@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -13,47 +14,55 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useFonts } from "expo-font";
 import { GravitasOne_400Regular } from "@expo-google-fonts/gravitas-one";
 import { MaidenOrange_400Regular } from "@expo-google-fonts/maiden-orange";
 import { AlfaSlabOne_400Regular } from "@expo-google-fonts/alfa-slab-one";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../../../../core/navigation/app_navigator";
+import { AppHeader } from "../../../../shared/ui/app_header";
+import { BottomNavigationBar } from "../../../../shared/ui/bottom_navigation_bar";
 
-type RegisterErrors = {
+type EditProfileRouteProp = RouteProp<RootStackParamList, "EditProfile">;
+
+type EditProfileErrors = {
   fullName?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
 };
 
-export function RegisterPage() {
+export function EditProfilePage() {
   const { width, height } = useWindowDimensions();
 
   const isSmallPhone = height < 700;
-  const horizontalPadding = width < 360 ? 24 : width < 400 ? 32 : 46;
-  const headerHeight = isSmallPhone
-    ? Math.min(height * 0.25, 190)
-    : Math.min(height * 0.29, 250);
-  const cardPaddingTop = isSmallPhone ? 34 : 50;
-  const titleFontSize = width < 360 ? 36 : 40;
-  const subtitleMarginBottom = isSmallPhone ? 28 : 42;
-
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [errors, setErrors] = useState<RegisterErrors>({});
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const horizontalPadding = width < 360 ? 24 : width < 400 ? 32 : 42;
+  const headerHeight = Math.min(Math.max(height * 0.17, 105), 140);
+  const cardPaddingTop = isSmallPhone ? 28 : 42;
+  const titleFontSize = width < 360 ? 34 : 38;
+  const avatarSize = width < 360 ? 82 : 92;
 
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const route = useRoute<EditProfileRouteProp>();
+
+  const user = route.params.user;
+
+  const [fullName, setFullName] = useState(user.fullName);
+  const [email, setEmail] = useState(user.email);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [imageUri, setImageUri] = useState<string | null>(user.imageUri ?? null);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState<EditProfileErrors>({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   const [fontsLoaded] = useFonts({
     GravitasOne_400Regular,
@@ -61,13 +70,19 @@ export function RegisterPage() {
     AlfaSlabOne_400Regular,
   });
 
+  useEffect(() => {
+    setFullName(user.fullName);
+    setEmail(user.email);
+    setImageUri(user.imageUri ?? null);
+  }, [user.email, user.fullName, user.imageUri]);
+
   const validateForm = (
     currentFullName: string,
     currentEmail: string,
     currentPassword: string,
     currentConfirmPassword: string
-  ): RegisterErrors => {
-    const newErrors: RegisterErrors = {};
+  ): EditProfileErrors => {
+    const newErrors: EditProfileErrors = {};
 
     const cleanFullName = currentFullName.trim();
     const cleanEmail = currentEmail.trim();
@@ -88,15 +103,16 @@ export function RegisterPage() {
       }
     }
 
-    if (!currentPassword.trim()) {
-      newErrors.password = "La contraseña es obligatoria";
-    } else if (currentPassword.length < 6) {
+    if (currentPassword.length > 0 && currentPassword.length < 6) {
       newErrors.password = "La contraseña debe tener mínimo 6 caracteres";
     }
 
-    if (!currentConfirmPassword.trim()) {
+    if (currentPassword.length > 0 && !currentConfirmPassword) {
       newErrors.confirmPassword = "Confirma tu contraseña";
-    } else if (currentConfirmPassword !== currentPassword) {
+    } else if (
+      currentPassword.length > 0 &&
+      currentPassword !== currentConfirmPassword
+    ) {
       newErrors.confirmPassword = "Las contraseñas no coinciden";
     }
 
@@ -137,7 +153,30 @@ export function RegisterPage() {
     }
   };
 
-  const handleRegister = () => {
+  const handleSelectImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Permiso requerido",
+        "Debes permitir el acceso a tus fotos para cambiar la imagen."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.8,
+      aspect: [1, 1],
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleSave = () => {
     setHasSubmitted(true);
 
     const validationErrors = validateForm(
@@ -153,7 +192,12 @@ export function RegisterPage() {
       return;
     }
 
-    navigation.navigate("Dashboard");
+    Alert.alert(
+      "Perfil actualizado",
+      "La información del perfil se guardó correctamente."
+    );
+
+    navigation.navigate("Profile");
   };
 
   if (!fontsLoaded) {
@@ -166,30 +210,32 @@ export function RegisterPage() {
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.container}>
-            <Image
-              source={require("../../../../../assets/images/fondo.png")}
-              style={[
-                styles.headerImage,
-                {
-                  height: headerHeight,
-                },
-              ]}
-              resizeMode="cover"
-            />
+        <View style={styles.container}>
+          <View>
+            <AppHeader imageHeight={headerHeight} />
 
-            <View
-              style={[
-                styles.card,
-                {
-                  paddingHorizontal: horizontalPadding,
-                  paddingTop: cardPaddingTop,
-                },
-              ]}
+            <TouchableOpacity
+              style={styles.backButton}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate("Profile")}
+            >
+              <Ionicons name="arrow-back" size={22} color={COLORS.green} />
+            </TouchableOpacity>
+          </View>
+
+          <View
+            style={[
+              styles.card,
+              {
+                paddingHorizontal: horizontalPadding,
+                paddingTop: cardPaddingTop,
+              },
+            ]}
+          >
+            <ScrollView
+              contentContainerStyle={styles.content}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
             >
               <Text
                 style={[
@@ -200,28 +246,63 @@ export function RegisterPage() {
                   },
                 ]}
               >
-                Regístrate
+                Editar perfil
               </Text>
 
-              <Text
-                style={[
-                  styles.subtitle,
-                  {
-                    marginBottom: subtitleMarginBottom,
-                  },
-                ]}
-              >
-                Crea una cuenta para comenzar{"\n"}y monitorear tus cultivos
+              <Text style={styles.subtitle}>
+                Actualiza tu información personal
               </Text>
 
-              <View style={styles.form}>
+              <View style={styles.formCard}>
+                <TouchableOpacity
+                  style={styles.avatarWrapper}
+                  activeOpacity={0.85}
+                  onPress={handleSelectImage}
+                >
+                  <View
+                    style={[
+                      styles.avatarContainer,
+                      {
+                        width: avatarSize,
+                        height: avatarSize,
+                        borderRadius: avatarSize / 2,
+                      },
+                    ]}
+                  >
+                    {imageUri ? (
+                      <Image
+                        source={{ uri: imageUri }}
+                        style={[
+                          styles.avatarImage,
+                          {
+                            width: avatarSize,
+                            height: avatarSize,
+                            borderRadius: avatarSize / 2,
+                          },
+                        ]}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Ionicons
+                        name="person-outline"
+                        size={avatarSize * 0.55}
+                        color={COLORS.green}
+                      />
+                    )}
+                  </View>
+
+                  <View style={styles.cameraBadge}>
+                    <Ionicons name="camera" size={12} color={COLORS.pink} />
+                  </View>
+                </TouchableOpacity>
+
                 <View
                   style={[
                     styles.inputContainer,
                     errors.fullName ? styles.inputError : null,
                   ]}
                 >
-                  <Ionicons name="person" size={18} color={COLORS.green} />
+                  <Ionicons name="person-outline" size={18} color={COLORS.green} />
 
                   <TextInput
                     style={styles.input}
@@ -286,8 +367,8 @@ export function RegisterPage() {
                   />
 
                   <TouchableOpacity
+                    activeOpacity={0.75}
                     onPress={() => setShowPassword(!showPassword)}
-                    activeOpacity={0.7}
                   >
                     <Ionicons
                       name={showPassword ? "eye-outline" : "eye-off-outline"}
@@ -324,10 +405,10 @@ export function RegisterPage() {
                   />
 
                   <TouchableOpacity
+                    activeOpacity={0.75}
                     onPress={() =>
                       setShowConfirmPassword(!showConfirmPassword)
                     }
-                    activeOpacity={0.7}
                   >
                     <Ionicons
                       name={
@@ -342,36 +423,30 @@ export function RegisterPage() {
                 </View>
 
                 {errors.confirmPassword ? (
-                  <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+                  <Text style={styles.errorText}>
+                    {errors.confirmPassword}
+                  </Text>
                 ) : null}
-
-                <TouchableOpacity
-                  style={[
-                    styles.registerButton,
-                    {
-                      marginTop: isSmallPhone ? 12 : 18,
-                    },
-                  ]}
-                  activeOpacity={0.8}
-                  onPress={handleRegister}
-                >
-                  <Text style={styles.registerButtonText}>Crear cuenta</Text>
-                </TouchableOpacity>
-
-                <View style={styles.loginContainer}>
-                  <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
-
-                  <TouchableOpacity
-                    activeOpacity={0.7}
-                    onPress={() => navigation.navigate("Login")}
-                  >
-                    <Text style={styles.loginLink}>Inicia sesión</Text>
-                  </TouchableOpacity>
-                </View>
               </View>
-            </View>
+
+              <TouchableOpacity
+                style={styles.saveButton}
+                activeOpacity={0.85}
+                onPress={handleSave}
+              >
+                <Ionicons
+                  name="save-outline"
+                  size={15}
+                  color={COLORS.background}
+                />
+
+                <Text style={styles.saveButtonText}>Guardar información</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
-        </ScrollView>
+
+          <BottomNavigationBar activeRoute="Profile" />
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -382,8 +457,7 @@ const COLORS = {
   background: "#FFFFF1",
   gray: "#959595",
   black: "#000000",
-  yellow: "#F6C94D",
-  darkBackground: "#202020",
+  pink: "#E4568B",
   error: "#C94C4C",
 };
 
@@ -396,56 +470,91 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  scrollContent: {
-    flexGrow: 1,
-    backgroundColor: COLORS.background,
-  },
   container: {
     flex: 1,
     width: "100%",
     backgroundColor: COLORS.background,
     overflow: "hidden",
   },
-  headerImage: {
-    width: "100%",
+  backButton: {
+    position: "absolute",
+    top: 12,
+    left: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
   },
   card: {
-    flexGrow: 1,
-    marginTop: -42,
+    flex: 1,
+    marginTop: -28,
     backgroundColor: COLORS.background,
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
-    paddingBottom: 44,
-    alignItems: "center",
+  },
+  content: {
+    flexGrow: 1,
+    paddingBottom: 90,
   },
   title: {
     fontFamily: "MaidenOrange_400Regular",
     color: COLORS.green,
-    textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 2,
   },
   subtitle: {
     fontFamily: "MaidenOrange_400Regular",
     fontSize: 15,
-    lineHeight: 17,
+    lineHeight: 18,
     color: COLORS.gray,
-    textAlign: "center",
+    marginBottom: 28,
   },
-  form: {
+  formCard: {
     width: "100%",
+    borderWidth: 1.4,
+    borderColor: COLORS.green,
+    borderRadius: 14,
+    padding: 22,
+    backgroundColor: COLORS.background,
+    marginBottom: 30,
+  },
+  avatarWrapper: {
+    alignSelf: "center",
+    marginBottom: 24,
+  },
+  avatarContainer: {
+    backgroundColor: "#D9D9D9",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarImage: {
+    backgroundColor: "#D9D9D9",
+  },
+  cameraBadge: {
+    position: "absolute",
+    right: 2,
+    bottom: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.background,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: COLORS.pink,
   },
   inputContainer: {
     width: "100%",
-    minHeight: 49,
-    backgroundColor: COLORS.background,
+    minHeight: 42,
+    borderWidth: 1,
+    borderColor: COLORS.green,
     borderRadius: 9,
-    paddingHorizontal: 13,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "rgba(149, 149, 149, 0.12)",
+    marginBottom: 10,
+    backgroundColor: COLORS.background,
   },
   inputError: {
     borderColor: COLORS.error,
@@ -453,48 +562,34 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     marginLeft: 8,
-    color: COLORS.black,
     fontFamily: "MaidenOrange_400Regular",
-    fontSize: 17,
-    lineHeight: 21,
+    fontSize: 14,
+    lineHeight: 18,
+    color: COLORS.black,
+    paddingVertical: 0,
   },
   errorText: {
     fontFamily: "MaidenOrange_400Regular",
     color: COLORS.error,
     fontSize: 13,
     lineHeight: 16,
-    marginBottom: 12,
+    marginTop: -4,
+    marginBottom: 10,
     marginLeft: 4,
   },
-  registerButton: {
+  saveButton: {
     alignSelf: "center",
-    backgroundColor: COLORS.green,
+    flexDirection: "row",
+    backgroundColor: COLORS.pink,
     paddingHorizontal: 22,
     paddingVertical: 10,
     borderRadius: 22,
-    marginBottom: 20,
   },
-  registerButtonText: {
+  saveButtonText: {
     fontFamily: "AlfaSlabOne_400Regular",
+    fontSize: 12,
+    lineHeight: 17,
     color: COLORS.background,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  loginContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loginText: {
-    fontFamily: "MaidenOrange_400Regular",
-    color: COLORS.gray,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  loginLink: {
-    fontFamily: "MaidenOrange_400Regular",
-    color: COLORS.green,
-    fontSize: 13,
-    lineHeight: 18,
+    marginLeft: 6,
   },
 });

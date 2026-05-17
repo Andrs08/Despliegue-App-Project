@@ -1,7 +1,6 @@
 import React, { useRef, useState } from "react";
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -10,6 +9,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { useFonts } from "expo-font";
@@ -21,6 +21,7 @@ import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../../../../core/navigation/app_navigator";
+import { AppHeader } from "../../../../shared/ui/app_header";
 
 type VerificationCodeRouteProp = RouteProp<
   RootStackParamList,
@@ -28,12 +29,25 @@ type VerificationCodeRouteProp = RouteProp<
 >;
 
 export function VerificationCodePage() {
+  const { width, height } = useWindowDimensions();
+
+  const isSmallPhone = height < 700;
+  const horizontalPadding = width < 360 ? 24 : width < 400 ? 32 : 44;
+  const headerHeight = Math.min(Math.max(height * 0.17, 105), 140);
+  const titleFontSize = width < 360 ? 34 : 39;
+  const cardPaddingTop = isSmallPhone ? 38 : 58;
+  const subtitleMarginBottom = isSmallPhone ? 30 : 44;
+  const codeInputWidth = width < 360 ? 34 : width < 400 ? 38 : 42;
+  const codeInputHeight = isSmallPhone ? 42 : 45;
+  const verifyButtonMarginTop = isSmallPhone ? 18 : 22;
+  const verifyButtonMarginBottom = isSmallPhone ? 22 : 28;
+
   const route = useRoute<VerificationCodeRouteProp>();
+
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const email = route.params?.email ?? "tu correo electrónico";
-  const flow = route.params?.flow ?? "forgotPassword";
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
@@ -87,15 +101,9 @@ export function VerificationCodePage() {
       return;
     }
 
-    if (flow === "register") {
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Login" }],
-      });
-      return;
-    }
-
-    navigation.navigate("ResetPassword");
+    navigation.navigate("ResetPassword", {
+      email,
+    });
   };
 
   const handleResendCode = () => {
@@ -120,23 +128,37 @@ export function VerificationCodePage() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
-            <View style={styles.logoHeader}>
-              <View style={styles.logoContainer}>
-                <Text style={styles.logoGreen}>Bana</Text>
-                <Text style={styles.logoYellow}>Eye</Text>
-              </View>
-            </View>
+            <AppHeader imageHeight={headerHeight} />
 
-            <Image
-              source={require("../../../../../assets/images/fondo2.png")}
-              style={styles.headerImage}
-              resizeMode="cover"
-            />
+            <View
+              style={[
+                styles.card,
+                {
+                  paddingHorizontal: horizontalPadding,
+                  paddingTop: cardPaddingTop,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.title,
+                  {
+                    fontSize: titleFontSize,
+                    lineHeight: titleFontSize + 4,
+                  },
+                ]}
+              >
+                Verifica tu correo
+              </Text>
 
-            <View style={styles.card}>
-              <Text style={styles.title}>Verifica tu correo</Text>
-
-              <Text style={styles.subtitle}>
+              <Text
+                style={[
+                  styles.subtitle,
+                  {
+                    marginBottom: subtitleMarginBottom,
+                  },
+                ]}
+              >
                 Hemos enviado un código de verificación a{"\n"}
                 <Text style={styles.emailText}>{maskEmail(email)}</Text>
               </Text>
@@ -153,6 +175,10 @@ export function VerificationCodePage() {
                       }}
                       style={[
                         styles.codeInput,
+                        {
+                          width: codeInputWidth,
+                          height: codeInputHeight,
+                        },
                         error ? styles.codeInputError : null,
                       ]}
                       value={digit}
@@ -171,7 +197,13 @@ export function VerificationCodePage() {
               {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
               <TouchableOpacity
-                style={styles.verifyButton}
+                style={[
+                  styles.verifyButton,
+                  {
+                    marginTop: verifyButtonMarginTop,
+                    marginBottom: verifyButtonMarginBottom,
+                  },
+                ]}
                 activeOpacity={0.8}
                 onPress={handleVerifyCode}
               >
@@ -199,7 +231,6 @@ const COLORS = {
   gray: "#959595",
   black: "#000000",
   pink: "#E4568B",
-  yellow: "#F6C94D",
   darkBackground: "#202020",
   error: "#C94C4C",
 };
@@ -207,67 +238,33 @@ const COLORS = {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.darkBackground,
+    backgroundColor: COLORS.background,
   },
   keyboardView: {
     flex: 1,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 24,
+    backgroundColor: COLORS.background,
   },
   container: {
-    width: "88%",
-    maxWidth: 440,
-    minHeight: 760,
+    flex: 1,
+    width: "100%",
     backgroundColor: COLORS.background,
     overflow: "hidden",
   },
-  logoHeader: {
-    height: 75,
-    backgroundColor: COLORS.background,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  logoGreen: {
-    fontFamily: "GravitasOne_400Regular",
-    fontSize: 30,
-    lineHeight: 38,
-    color: COLORS.green,
-    letterSpacing: -0.5,
-  },
-  logoYellow: {
-    fontFamily: "GravitasOne_400Regular",
-    fontSize: 30,
-    lineHeight: 38,
-    color: COLORS.yellow,
-    letterSpacing: -0.5,
-  },
-  headerImage: {
-    width: "100%",
-    height: 115,
-  },
   card: {
+    flexGrow: 1,
     marginTop: -28,
     backgroundColor: COLORS.background,
     borderTopLeftRadius: 34,
     borderTopRightRadius: 34,
-    paddingHorizontal: 44,
-    paddingTop: 58,
     paddingBottom: 50,
     alignItems: "center",
-    minHeight: 570,
   },
   title: {
     fontFamily: "MaidenOrange_400Regular",
-    fontSize: 39,
-    lineHeight: 42,
     color: COLORS.green,
     textAlign: "center",
     marginBottom: 28,
@@ -278,7 +275,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     color: COLORS.gray,
     textAlign: "center",
-    marginBottom: 44,
   },
   emailText: {
     color: COLORS.green,
@@ -295,12 +291,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   codeInputsContainer: {
+    width: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
   },
   codeInput: {
-    width: 35,
-    height: 45,
     borderWidth: 1.4,
     borderColor: COLORS.green,
     borderRadius: 8,
@@ -318,7 +313,7 @@ const styles = StyleSheet.create({
     color: COLORS.error,
     fontSize: 13,
     lineHeight: 16,
-    marginBottom: 10,
+    marginTop: 4,
     marginLeft: 4,
   },
   verifyButton: {
@@ -326,8 +321,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 10,
     borderRadius: 22,
-    marginTop: 22,
-    marginBottom: 28,
   },
   verifyButtonText: {
     fontFamily: "AlfaSlabOne_400Regular",
