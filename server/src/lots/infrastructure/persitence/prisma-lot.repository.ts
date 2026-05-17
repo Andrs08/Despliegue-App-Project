@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PrismaLoteRepository implements LoteRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {} 
   async create(lote: Lot): Promise<Lot> {
     const created = await this.prisma.lote.create({
       data: {

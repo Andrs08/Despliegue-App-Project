@@ -8,11 +8,13 @@ import { StageRecordModule } from './stage-record/stage-record.module';
 import { AlertModule } from './alert/alert.module';
 import { AgriculturalRulesModule } from './agricultural-rules/agricultural-rules.module';
 import { SharedModule } from './shared/shared.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
     SharedModule,
     AuthModule,
+    DashboardModule,
     NotesModule,
     LoteModule,
     StageRecordModule,
