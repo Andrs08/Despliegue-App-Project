@@ -13,10 +13,10 @@ export class CloudinaryStorageService implements IImageStorageService {
     });
   }
 
-  async uploadImage(file: any): Promise<string> {
+  async uploadImage(file: any, folder: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const upload = cloudinary.uploader.upload_stream(
-        { folder: 'bitacoras' },
+        { folder: `${folder}` },
         (error, result) => {
           if (error) return reject(error);
           resolve(result!.secure_url);

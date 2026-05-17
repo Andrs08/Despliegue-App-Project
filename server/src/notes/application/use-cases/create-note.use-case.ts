@@ -13,7 +13,7 @@ export class CreateNoteUseCase {
     let finalImageUrl = data.imagen_url || null;
 
     if (file) {
-      finalImageUrl = await this.fileStorage.uploadImage(file);
+      finalImageUrl = await this.fileStorage.uploadImage(file, 'bitacoras');
     }
     const newNote = new Note(
       '', // El ID lo generará la DB

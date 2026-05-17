@@ -21,7 +21,7 @@ export class UpdateNoteUseCase {
         await this.fileStorage.deleteImage(existingNote.imagen_url);
       }
 
-      finalImageUrl = await this.fileStorage.uploadImage(file);
+      finalImageUrl = await this.fileStorage.uploadImage(file, 'bitacoras');
     }
     const updatedNote: Partial<Note> = {
       lote_id: data.lote_id,

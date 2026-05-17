@@ -4,8 +4,9 @@ import { PrismaUserRepository } from './infrastructure/persistence/prisma-user.r
 import { RegisterUseCase } from './application/use-cases/register.use-case';
 import { LoginUseCase } from './application/use-cases/login.use-case';
 import { JwtService } from './infrastructure/services/jwt.service';
-import {PrismaModule} from '../prisma/prisma.module'
+import { PrismaModule } from '../prisma/prisma.module';
 import { UpdateUserUseCase } from './application/use-cases/update-user.use-case';
+import { IImageStorageService } from 'src/shared/domain/repositories/image.repository.interface';
 
 @Module({
   imports: [PrismaModule],
@@ -24,11 +25,13 @@ import { UpdateUserUseCase } from './application/use-cases/update-user.use-case'
         new LoginUseCase(repo, jwt),
       inject: [PrismaUserRepository, JwtService],
     },
-     {
+    {
       provide: UpdateUserUseCase,
-      inject: [PrismaUserRepository],
-      useFactory: (repository: PrismaUserRepository) =>
-        new UpdateUserUseCase(repository),
+      inject: [PrismaUserRepository, 'IImageStorageService'],
+      useFactory: (
+        repository: PrismaUserRepository,
+        storage: IImageStorageService,
+      ) => new UpdateUserUseCase(repository, storage),
     },
   ],
 })
