@@ -32,12 +32,12 @@ export class PrismaUserRepository implements UserRepository {
     );
   }
 
-  async findById(id: string): Promise<User> {
+  async findById(id: string): Promise<User | null> {
     const found = await this.prisma.usuario.findUnique({
       where: { id: id },
     });
     if (!found) {
-      throw new NotFoundException('Usuario no encontrado');
+      return null;
     }
     return new User(
       found.id,

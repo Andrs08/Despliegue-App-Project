@@ -21,6 +21,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../../../../core/navigation/app_navigator";
+import { useLoginViewModel } from "../viewmodels/login_viewmodel";
 
 type LoginErrors = {
   email?: string;
@@ -36,31 +37,32 @@ export function LoginPage() {
     ? Math.min(height * 0.29, 215)
     : Math.min(height * 0.32, 275);
 
-  const logoFontSize = width < 360 ? 42 : 48;
-  const titleFontSize = width < 360 ? 36 : 40;
-  const subtitleMarginBottom = isSmallPhone ? 24 : 34;
-  const forgotMarginBottom = isSmallPhone ? 26 : 36;
-  const cardPaddingTop = isSmallPhone ? 30 : 38;
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [errors, setErrors] = useState<LoginErrors>({});
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-
   const [fontsLoaded] = useFonts({
     GravitasOne_400Regular,
     MaidenOrange_400Regular,
     AlfaSlabOne_400Regular,
   });
 
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<LoginErrors>({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const logoFontSize = width < 360 ? 42 : 48;
+  const titleFontSize = width < 360 ? 36 : 40;
+  const subtitleMarginBottom = isSmallPhone ? 24 : 34;
+  const forgotMarginBottom = isSmallPhone ? 26 : 36;
+  const cardPaddingTop = isSmallPhone ? 30 : 38;
+
+  const { isLoading, apiError, executeLogin } = useLoginViewModel();
+
   const validateForm = (
     currentEmail: string,
-    currentPassword: string
+    currentPassword: string,
   ): LoginErrors => {
     const newErrors: LoginErrors = {};
     const cleanEmail = currentEmail.trim();
@@ -77,8 +79,6 @@ export function LoginPage() {
 
     if (!currentPassword.trim()) {
       newErrors.password = "La contraseña es obligatoria";
-    } else if (currentPassword.length < 6) {
-      newErrors.password = "La contraseña debe tener mínimo 6 caracteres";
     }
 
     return newErrors;
@@ -111,9 +111,11 @@ export function LoginPage() {
       return;
     }
 
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "Dashboard" }],
+    executeLogin(email, password, () => {
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Dashboard" }],
+      });
     });
   };
 
@@ -281,10 +283,21 @@ export function LoginPage() {
                   </Text>
                 </TouchableOpacity>
 
+                {apiError ? (
+                  <Text
+                    style={[
+                      styles.errorText,
+                      { textAlign: "center", marginBottom: 16 },
+                    ]}
+                  >
+                    {apiError}
+                  </Text>
+                ) : null}
                 <TouchableOpacity
                   style={styles.loginButton}
                   activeOpacity={0.8}
                   onPress={handleLogin}
+                  disabled={isLoading}
                 >
                   <Text style={styles.loginButtonText}>Iniciar sesión</Text>
                 </TouchableOpacity>
