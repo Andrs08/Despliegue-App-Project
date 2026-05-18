@@ -11,6 +11,10 @@ export class LoginUseCase {
   async execute(data: any) {
     const user = await this.userRepo.findByEmail(data.email);
 
+    const userId = user?.id;
+
+    const userName = user?.name;
+
     if (!user)
       throw new UnauthorizedException(
         'El correo electrónico o la contraseña son incorrectos',
@@ -28,6 +32,6 @@ export class LoginUseCase {
       email: user.email,
     });
 
-    return { token };
+    return { userId, userName, token };
   }
 }

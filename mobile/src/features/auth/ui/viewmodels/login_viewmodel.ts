@@ -73,6 +73,7 @@ export function useLoginViewModel(onSuccess: () => void) {
     try {
       setIsLoading(true);
       await loginUseCase.execute(email, password);
+      onSuccess();
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.message ||
