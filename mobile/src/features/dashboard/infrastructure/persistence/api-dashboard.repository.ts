@@ -9,15 +9,16 @@ import {
   DashboardData,
 } from "../../domain/interfaces/dashboard.interfaces";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://10.0.2.2:3000";
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const CACHE_KEY = "dashboard_cache";
+const SESSION_TOKEN = process.env.EXPO_PUBLIC_LOCAL_TOKEN;
+const SESSION_NAME = process.env.EXPO_PUBLIC_LOCAL_USER_NAME
 
 export class ApiDashboardRepository implements DashboardRepository {
   constructor(private storage: ILocalPreferences) {}
 
   private async getToken(): Promise<string> {
-    const token =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI3OWM2YWYyYi05NGIyLTQ2MjMtYWE3OC05MmE4YWFlN2M0YTkiLCJlbWFpbCI6ImFodWVsdmFzQHVuaW5vcnRlLmVkdS5jbyIsImlhdCI6MTc3ODg3ODA3MCwiZXhwIjoxNzc5NDgyODcwfQ.tiOBU_J_BOuIJjmhM_k5ueunoS_Y3Q3Lcb6moJkfvfA";
+    const token = await this.storage.retrieveData<string>(SESSION_TOKEN!);
     if (!token) throw new Error("No autenticado");
     return token;
   }
@@ -63,5 +64,10 @@ export class ApiDashboardRepository implements DashboardRepository {
 
   async cacheDashboard(data: DashboardData): Promise<void> {
     return this.storage.storeData<DashboardData>(CACHE_KEY, data);
+  }
+
+  async getUserName(): Promise<string | null> {
+    const name = await this.storage.retrieveData<string>(SESSION_NAME!);
+    return name ?? null;
   }
 }

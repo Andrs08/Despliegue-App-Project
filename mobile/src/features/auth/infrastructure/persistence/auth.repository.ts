@@ -3,7 +3,7 @@ import { IAuthRepository } from "../../domain/repositories/auth.repository.inter
 import { AuthenticatedUser } from "../../domain/entities/autheticated-user-entity";
 import axios from "axios";
 
-const API_URL = "http://192.168.1.5:3000/auth";
+const API_URL = "http://192.168.1.4:3000/auth";
 const SESSION_KEY = "user_session";
 
 export class AuthRepository implements IAuthRepository {

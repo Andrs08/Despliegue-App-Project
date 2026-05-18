@@ -16,4 +16,6 @@ export interface DashboardRepository {
 
   getCachedDashboard(): Promise<DashboardData | null>;
   cacheDashboard(data: DashboardData): Promise<void>;
+
+  getUserName(): Promise<string | null>;
 }
