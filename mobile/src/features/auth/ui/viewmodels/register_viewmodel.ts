@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { RegisterUseCase } from "../../application/use-cases/register.use-case";
 import { LoginUseCase } from "../../application/use-cases/login.use-case";
+import { AuthRepository } from "../../infrastructure/persistence/auth.repository";
+
+const authRepository = new AuthRepository();
+const registerUseCase = new RegisterUseCase(authRepository);
+const loginUseCase = new LoginUseCase(authRepository);
 
 type RegisterErrors = {
   fullName?: string;
@@ -9,11 +14,7 @@ type RegisterErrors = {
   confirmPassword?: string;
 };
 
-export function useRegisterViewModel(
-  registerUseCase: RegisterUseCase,
-  loginUseCase: LoginUseCase,
-  onSuccess: () => void,
-) {
+export function useRegisterViewModel(onSuccess: () => void) {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -77,10 +78,10 @@ export function useRegisterViewModel(
   };
 
   const handleEmailChange = (value: string) => {
-    const cleanValue = value.replace(/\s/g, "").toLowerCase();
-    setEmail(cleanValue);
+    setEmail(value);
 
     if (hasSubmitted) {
+      const cleanValue = value.replace(/\s/g, "").toLowerCase();
       setErrors(validateForm(fullName, cleanValue, password, confirmPassword));
     }
   };

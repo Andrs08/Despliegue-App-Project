@@ -25,10 +25,6 @@ import { useNavigation } from "expo-router";
 import { useRegisterViewModel } from "../viewmodels/register_viewmodel";
 import { LoginUseCase } from "../../application/use-cases/login.use-case";
 
-const authRepository = new AuthRepository();
-const registerUseCase = new RegisterUseCase(authRepository);
-const loginUseCase = new LoginUseCase(authRepository);
-
 export function RegisterPage() {
   const { width, height } = useWindowDimensions();
 
@@ -61,7 +57,7 @@ export function RegisterPage() {
     handlePasswordChange,
     handleConfirmPasswordChange,
     handleRegister,
-  } = useRegisterViewModel(registerUseCase, loginUseCase, () => {
+  } = useRegisterViewModel(() => {
     navigation.navigate("Dashboard");
   });
 
@@ -260,6 +256,16 @@ export function RegisterPage() {
                   <Text style={styles.errorText}>{errors.confirmPassword}</Text>
                 ) : null}
 
+                {apiError ? (
+                  <Text
+                    style={[
+                      styles.errorText,
+                      { textAlign: "center", marginBottom: 16 },
+                    ]}
+                  >
+                    {apiError}
+                  </Text>
+                ) : null}
                 <TouchableOpacity
                   style={[
                     styles.registerButton,
