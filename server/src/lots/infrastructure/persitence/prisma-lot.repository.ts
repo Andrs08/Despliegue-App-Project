@@ -72,3 +72,5 @@ export class PrismaLoteRepository implements LoteRepository {
     );
   }
 }
+
+
