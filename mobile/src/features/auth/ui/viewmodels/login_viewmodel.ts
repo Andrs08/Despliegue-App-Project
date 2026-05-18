@@ -26,7 +26,7 @@ export function useLoginViewModel() {
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
-        "Credenciales incorrectas";
+        "Error al iniciar sesión";
       setApiError(errorMessage);
     }
   };
