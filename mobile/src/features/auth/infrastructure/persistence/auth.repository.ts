@@ -4,7 +4,9 @@ import { AuthenticatedUser } from "../../domain/entities/autheticated-user.entit
 import axios from "axios";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
-const SESSION_KEY = "user_session";
+const SESSION_STORAGE = process.env.EXPO_PUBLIC_LOCAL_TOKEN;
+const USER_ID_STORAGE = process.env.EXPO_PUBLIC_LOCAL_USER_ID;
+const USER_NAME_STORAGE = process.env.EXPO_PUBLIC_LOCAL_USER_NAME;
 
 export class AuthRepository implements IAuthRepository {
   private localPreferences = LocalPreferencesAsyncStorage.getInstance();
@@ -18,7 +20,9 @@ export class AuthRepository implements IAuthRepository {
   }
 
   async saveSession(user: AuthenticatedUser): Promise<void> {
-    await this.localPreferences.storeData(SESSION_KEY, user.token);
+    await this.localPreferences.storeData(SESSION_STORAGE!, user.token);
+    await this.localPreferences.storeData(USER_ID_STORAGE!, user.id);
+    await this.localPreferences.storeData(USER_NAME_STORAGE!, user.name);
   }
 
   async register(
