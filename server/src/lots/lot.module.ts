@@ -6,17 +6,25 @@ import { GetLotesUseCase } from './application/use-cases/get-lots.use-case';
 import { GetLoteUseCase } from './application/use-cases/get-lot.use-case';
 import { UpdateLoteUseCase } from './application/use-cases/update-lot.use-case';
 import { DeleteLoteUseCase } from './application/use-cases/delete-lot.use-case';
-import {PrismaModule} from '../prisma/prisma.module';
+import { PrismaModule } from '../prisma/prisma.module';
+import { AlertModule } from 'src/alert/alert.module';
+import { AgriculturalRulesModule } from 'src/agricultural-rules/agricultural-rules.module';
+import { EvaluateLotUseCase } from 'src/agricultural-rules/application/use-cases/evaluate-lot.use-case';
+import { CreateAlertUseCase } from 'src/alert/application/use-cases/create-alert.use-case';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AlertModule, AgriculturalRulesModule],
   controllers: [LoteController],
   providers: [
     PrismaLoteRepository,
     {
       provide: CreateLoteUseCase,
-      useFactory: (repo: PrismaLoteRepository) => new CreateLoteUseCase(repo),
-      inject: [PrismaLoteRepository],
+      useFactory: (
+        repo: PrismaLoteRepository,
+        evaluateLot: EvaluateLotUseCase,
+        createAlert: CreateAlertUseCase,
+      ) => new CreateLoteUseCase(repo, evaluateLot, createAlert),
+      inject: [PrismaLoteRepository, EvaluateLotUseCase, CreateAlertUseCase],
     },
     {
       provide: GetLotesUseCase,

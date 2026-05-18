@@ -5,23 +5,36 @@ import { CreateStageRecordUseCase } from './application/use-cases/create-stage-r
 import { GetStageRecordsUseCase } from './application/use-cases/get-stage-records.use-case';
 import { UpdateStageRecordUseCase } from './application/use-cases/update-stage-record.use-case';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { AgriculturalRulesModule } from '../agricultural-rules/agricultural-rules.module';
+import { AlertModule } from '../alert/alert.module';
+import { EvaluateStageRecordUseCase } from '../agricultural-rules/application/use-cases/evaluate-stage-record.use-case';
+import { CreateAlertUseCase } from '../alert/application/use-cases/create-alert.use-case';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AgriculturalRulesModule, AlertModule],
   controllers: [StageRecordController],
 
   providers: [
     PrismaStageRecordRepository,
-
     {
       provide: CreateStageRecordUseCase,
+      useFactory: (
+        repository: PrismaStageRecordRepository,
+        evaluateStageRecord: EvaluateStageRecordUseCase,
+        createAlert: CreateAlertUseCase,
+      ) =>
+        new CreateStageRecordUseCase(
+          repository,
+          evaluateStageRecord,
+          createAlert,
+        ),
 
-      useFactory: (repository: PrismaStageRecordRepository) =>
-        new CreateStageRecordUseCase(repository),
-
-      inject: [PrismaStageRecordRepository],
+      inject: [
+        PrismaStageRecordRepository,
+        EvaluateStageRecordUseCase,
+        CreateAlertUseCase,
+      ],
     },
-
     {
       provide: GetStageRecordsUseCase,
 

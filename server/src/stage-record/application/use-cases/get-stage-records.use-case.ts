@@ -1,13 +1,11 @@
-export class GetStageRecordsUseCase {
+import { NotFoundException } from '@nestjs/common';
 
-  constructor(
-    private repository: any
-  ) {}
+export class GetStageRecordsUseCase {
+  constructor(private repository: any) {}
 
   async execute(loteId: string) {
-
-    return this.repository.findByLote(
-      loteId
-    );
+    const registro = this.repository.findByLote(loteId);
+    if (!registro) throw new NotFoundException('No se encontro el registro');
+    return registro;
   }
 }
