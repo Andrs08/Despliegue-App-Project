@@ -10,7 +10,10 @@ export class AuthRepository implements IAuthRepository {
   private localPreferences = LocalPreferencesAsyncStorage.getInstance();
 
   async login(email: string, password: string): Promise<AuthenticatedUser> {
-    const response = await axios.post(`${API_URL}/login`, { email, password });
+    const response = await axios.post(`${API_URL}/auth/login`, {
+      email,
+      password,
+    });
     return response.data;
   }
 
@@ -23,7 +26,7 @@ export class AuthRepository implements IAuthRepository {
     email: string,
     password: string,
   ): Promise<AuthenticatedUser> {
-    const response = await axios.post(`${API_URL}/register`, {
+    const response = await axios.post(`${API_URL}/auth/register`, {
       name,
       email,
       password,
