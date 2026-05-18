@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -24,45 +24,7 @@ import type {
 } from "../../../../core/navigation/app_navigator";
 import { AppHeader } from "../../../../shared/ui/app_header";
 import { BottomNavigationBar } from "../../../../shared/ui/bottom_navigation_bar";
-
-type SortOption = "recent" | "old";
-
-const BITACORAS: BitacoraRouteItem[] = [
-  {
-    id: 1,
-    title: "Bitácora de riego semanal",
-    lot: "Lote 1",
-    description: "Se realizó revisión general del riego semanal del cultivo.",
-    imageUri: null,
-    createdAt: "2026-05-15",
-  },
-  {
-    id: 2,
-    title: "Bitácora de revisión de hojas",
-    lot: "Lote 2",
-    description: "Se revisó el estado de las hojas y se registraron novedades.",
-    imageUri: null,
-    createdAt: "2026-05-12",
-  },
-  {
-    id: 3,
-    title: "Bitácora de control de plagas",
-    lot: "Lote 1",
-    description: "Se hizo una inspección para identificar posibles plagas.",
-    imageUri: null,
-    createdAt: "2026-05-10",
-  },
-  {
-    id: 4,
-    title: "Bitácora de fertilización",
-    lot: "Lote 3",
-    description: "Se registró la aplicación de fertilizante en el cultivo.",
-    imageUri: null,
-    createdAt: "2026-05-08",
-  },
-];
-
-const LOTES = ["Todos", "Lote 1", "Lote 2", "Lote 3", "Lote 4"];
+import { useBitacorasViewModel } from "../viewmodels/bitacoras_viewmodel";
 
 export function BitacorasPage() {
   const { width, height } = useWindowDimensions();
@@ -78,65 +40,40 @@ export function BitacorasPage() {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  const [showMenu, setShowMenu] = useState(false);
-  const [showLots, setShowLots] = useState(false);
-  const [selectedLot, setSelectedLot] = useState("Todos");
-  const [sortOption, setSortOption] = useState<SortOption>("recent");
+  const {
+    lots,
+    showMenu,
+    showLots,
+    selectedLot,
+    sortOption,
+    filteredBitacoras,
+    currentFilterLabel,
+    handleToggleMenu,
+    handleToggleLots,
+    handleSelectRecent,
+    handleSelectOld,
+    handleSelectLot,
+    handleOpenBitacora,
+    handleAddBitacora,
+  } = useBitacorasViewModel({
+    onOpenBitacora: (bitacora: BitacoraRouteItem) => {
+      navigation.navigate("AddBitacora", {
+        mode: "edit",
+        bitacora,
+      });
+    },
+    onAddBitacora: () => {
+      navigation.navigate("AddBitacora", {
+        mode: "create",
+      });
+    },
+  });
 
   const [fontsLoaded] = useFonts({
     GravitasOne_400Regular,
     MaidenOrange_400Regular,
     AlfaSlabOne_400Regular,
   });
-
-  const filteredBitacoras = useMemo(() => {
-    const filtered =
-      selectedLot === "Todos"
-        ? BITACORAS
-        : BITACORAS.filter((item) => item.lot === selectedLot);
-
-    return [...filtered].sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
-
-      if (sortOption === "recent") {
-        return dateB - dateA;
-      }
-
-      return dateA - dateB;
-    });
-  }, [selectedLot, sortOption]);
-
-  const handleSelectRecent = () => {
-    setSortOption("recent");
-    setShowMenu(false);
-    setShowLots(false);
-  };
-
-  const handleSelectOld = () => {
-    setSortOption("old");
-    setShowMenu(false);
-    setShowLots(false);
-  };
-
-  const handleSelectLot = (lot: string) => {
-    setSelectedLot(lot);
-    setShowMenu(false);
-    setShowLots(false);
-  };
-
-  const handleOpenBitacora = (bitacora: BitacoraRouteItem) => {
-    navigation.navigate("AddBitacora", {
-      mode: "edit",
-      bitacora,
-    });
-  };
-
-  const handleAddBitacora = () => {
-    navigation.navigate("AddBitacora", {
-      mode: "create",
-    });
-  };
 
   if (!fontsLoaded) {
     return null;
@@ -189,7 +126,7 @@ export function BitacorasPage() {
                     showMenu ? styles.menuButtonActive : null,
                   ]}
                   activeOpacity={0.75}
-                  onPress={() => setShowMenu(!showMenu)}
+                  onPress={handleToggleMenu}
                 >
                   <Ionicons
                     name="funnel-outline"
@@ -204,7 +141,7 @@ export function BitacorasPage() {
                   <TouchableOpacity
                     style={styles.filterItem}
                     activeOpacity={0.75}
-                    onPress={() => setShowLots(!showLots)}
+                    onPress={handleToggleLots}
                   >
                     <Text style={styles.filterText}>Filtrar por lote</Text>
 
@@ -217,7 +154,7 @@ export function BitacorasPage() {
 
                   {showLots ? (
                     <View style={styles.lotsContainer}>
-                      {LOTES.map((lot) => (
+                      {lots.map((lot) => (
                         <TouchableOpacity
                           key={lot}
                           style={styles.lotItem}
@@ -272,10 +209,7 @@ export function BitacorasPage() {
               ) : null}
 
               <Text style={styles.currentFilterText}>
-                {selectedLot === "Todos"
-                  ? "Mostrando todos los lotes"
-                  : `Mostrando ${selectedLot}`}{" "}
-                · {sortOption === "recent" ? "Más recientes" : "Más antiguas"}
+                {currentFilterLabel}
               </Text>
 
               <View style={styles.listContainer}>
