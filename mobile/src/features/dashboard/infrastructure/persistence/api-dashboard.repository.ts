@@ -10,7 +10,7 @@ import {
 } from "../../domain/interfaces/dashboard.interfaces";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
-const CACHE_KEY = "dashboard_cache";
+const CACHE_KEY = process.env.EXPO_PUBLIC_CACHE_KEY;
 const SESSION_TOKEN = process.env.EXPO_PUBLIC_LOCAL_TOKEN;
 const SESSION_NAME = process.env.EXPO_PUBLIC_LOCAL_USER_NAME
 
@@ -59,11 +59,11 @@ export class ApiDashboardRepository implements DashboardRepository {
   }
 
   async getCachedDashboard(): Promise<DashboardData | null> {
-    return this.storage.retrieveData<DashboardData>(CACHE_KEY);
+    return this.storage.retrieveData<DashboardData>(CACHE_KEY!);
   }
 
   async cacheDashboard(data: DashboardData): Promise<void> {
-    return this.storage.storeData<DashboardData>(CACHE_KEY, data);
+    return this.storage.storeData<DashboardData>(CACHE_KEY!, data);
   }
 
   async getUserName(): Promise<string | null> {

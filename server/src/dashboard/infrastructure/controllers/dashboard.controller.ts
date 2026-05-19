@@ -30,6 +30,7 @@ export class DashboardController {
     summary: 'Obtener resumen general del dashboard',
   })
   summary(@Req() req: any) {
+    console.log('USERID' + req.user.userId)
     return this.summaryUseCase.execute(req.userId);
   }
 
@@ -38,6 +39,7 @@ export class DashboardController {
     summary: 'Obtener estado de los lotes(En riesgo, observacion o sano)',
   })
   lotStatus(@Req() req: any) {
+    console.log('USERID' + req.user.userId)
     return this.lotStatusUseCase.execute(req.userId);
   }
 
@@ -46,6 +48,7 @@ export class DashboardController {
     summary: 'Obtener distribucion por etapa de los lotes',
   })
   stageDistribution(@Req() req: any) {
+    console.log('USERID' + req.user.userId)
     return this.stageDistributionUseCase.execute(req.userId);
   }
 
@@ -55,6 +58,7 @@ export class DashboardController {
       'Obtener total de alertas activas y numero de alertas por cada nivel',
   })
   activeAlerts(@Req() req: any) {
+    console.log('USERID' + req.user.userId)
     return this.activeAlertsUseCase.execute(req.userId);
   }
 
@@ -64,6 +68,7 @@ export class DashboardController {
       'Obtener produccion estimada del lote y produccion real(solo si aplica)',
   })
   production(@Req() req: any) {
+    console.log('USERID' + req.user.userId)
     return this.productionUseCase.execute(req.userId);
   }
 }

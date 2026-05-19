@@ -43,6 +43,7 @@ export class NoteController {
 
   @Get()
   async findAll(@Req() req: any) {
+    console.log(req.userId)
     return await this.getNotesUseCase.execute(req.userId);
   }
 

@@ -166,7 +166,7 @@ function buildAlertsData(activeAlerts: ActiveAlerts): PieItem[] {
 
 export function DashboardPage() {
   const { width, height } = useWindowDimensions();
-  const { data, loading, error, isFromCache } = useDashboard();
+  const { data, userName,loading, error, isFromCache } = useDashboard();
 
   const isSmallPhone = height < 700;
   const horizontalPadding = width < 360 ? 16 : width < 420 ? 22 : 30;
@@ -256,7 +256,7 @@ export function DashboardPage() {
                   },
                 ]}
               >
-                Hola, xxx
+                Hola, {userName}
               </Text>
 
               <Text style={styles.subtitle}>

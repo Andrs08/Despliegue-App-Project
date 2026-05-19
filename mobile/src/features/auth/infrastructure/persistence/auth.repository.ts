@@ -3,15 +3,10 @@ import { IAuthRepository } from "../../domain/repositories/auth.repository.inter
 import { AuthenticatedUser } from "../../domain/entities/autheticated-user.entity";
 import axios from "axios";
 
-<<<<<<< HEAD
-const API_URL = "http://192.168.1.4:3000/auth";
-const SESSION_KEY = "user_session";
-=======
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 const SESSION_STORAGE = process.env.EXPO_PUBLIC_LOCAL_TOKEN;
 const USER_ID_STORAGE = process.env.EXPO_PUBLIC_LOCAL_USER_ID;
 const USER_NAME_STORAGE = process.env.EXPO_PUBLIC_LOCAL_USER_NAME;
->>>>>>> integration/auth
 
 export class AuthRepository implements IAuthRepository {
   private localPreferences = LocalPreferencesAsyncStorage.getInstance();
