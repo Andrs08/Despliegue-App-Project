@@ -21,11 +21,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../../../../core/navigation/app_navigator";
-
-type LoginErrors = {
-  email?: string;
-  password?: string;
-};
+import { useLoginViewModel } from "../viewmodels/login_viewmodel";
 
 export function LoginPage() {
   const { width, height } = useWindowDimensions();
@@ -36,86 +32,35 @@ export function LoginPage() {
     ? Math.min(height * 0.29, 215)
     : Math.min(height * 0.32, 275);
 
-  const logoFontSize = width < 360 ? 42 : 48;
-  const titleFontSize = width < 360 ? 36 : 40;
-  const subtitleMarginBottom = isSmallPhone ? 24 : 34;
-  const forgotMarginBottom = isSmallPhone ? 26 : 36;
-  const cardPaddingTop = isSmallPhone ? 30 : 38;
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const [errors, setErrors] = useState<LoginErrors>({});
-  const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-
   const [fontsLoaded] = useFonts({
     GravitasOne_400Regular,
     MaidenOrange_400Regular,
     AlfaSlabOne_400Regular,
   });
 
-  const validateForm = (
-    currentEmail: string,
-    currentPassword: string
-  ): LoginErrors => {
-    const newErrors: LoginErrors = {};
-    const cleanEmail = currentEmail.trim();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-    if (!cleanEmail) {
-      newErrors.email = "El correo electrónico es obligatorio";
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const logoFontSize = width < 360 ? 42 : 48;
+  const titleFontSize = width < 360 ? 36 : 40;
+  const subtitleMarginBottom = isSmallPhone ? 24 : 34;
+  const forgotMarginBottom = isSmallPhone ? 26 : 36;
+  const cardPaddingTop = isSmallPhone ? 30 : 38;
 
-      if (!emailRegex.test(cleanEmail)) {
-        newErrors.email = "Ingresa un correo electrónico válido";
-      }
-    }
-
-    if (!currentPassword.trim()) {
-      newErrors.password = "La contraseña es obligatoria";
-    } else if (currentPassword.length < 6) {
-      newErrors.password = "La contraseña debe tener mínimo 6 caracteres";
-    }
-
-    return newErrors;
-  };
-
-  const handleEmailChange = (value: string) => {
-    const cleanValue = value.replace(/\s/g, "").toLowerCase();
-    setEmail(cleanValue);
-
-    if (hasSubmitted) {
-      setErrors(validateForm(cleanValue, password));
-    }
-  };
-
-  const handlePasswordChange = (value: string) => {
-    setPassword(value);
-
-    if (hasSubmitted) {
-      setErrors(validateForm(email, value));
-    }
-  };
-
-  const handleLogin = () => {
-    setHasSubmitted(true);
-
-    const validationErrors = validateForm(email, password);
-    setErrors(validationErrors);
-
-    if (Object.keys(validationErrors).length > 0) {
-      return;
-    }
-
-    navigation.reset({
-      index: 0,
-      routes: [{ name: "Dashboard" }],
-    });
-  };
+  const {
+    isLoading,
+    apiError,
+    email,
+    password,
+    showPassword,
+    errors,
+    setShowPassword,
+    handleEmailChange,
+    handlePasswordChange,
+    handleLogin,
+  } = useLoginViewModel(() => {
+    navigation.navigate("Dashboard");
+  });
 
   if (!fontsLoaded) {
     return null;
@@ -220,6 +165,7 @@ export function LoginPage() {
                     autoCapitalize="none"
                     autoCorrect={false}
                     maxLength={80}
+                    editable={!isLoading}
                   />
                 </View>
 
@@ -247,6 +193,7 @@ export function LoginPage() {
                     onChangeText={handlePasswordChange}
                     secureTextEntry={!showPassword}
                     maxLength={30}
+                    editable={!isLoading}
                   />
 
                   <TouchableOpacity
@@ -281,10 +228,27 @@ export function LoginPage() {
                   </Text>
                 </TouchableOpacity>
 
+                {apiError ? (
+                  <Text
+                    style={[
+                      styles.errorText,
+                      { textAlign: "center", marginBottom: 16 },
+                    ]}
+                  >
+                    {apiError}
+                  </Text>
+                ) : null}
                 <TouchableOpacity
-                  style={styles.loginButton}
+                  style={[
+                    styles.loginButton,
+                    {
+                      marginTop: isSmallPhone ? 12 : 18,
+                      opacity: isLoading ? 0.6 : 1,
+                    },
+                  ]}
                   activeOpacity={0.8}
                   onPress={handleLogin}
+                  disabled={isLoading}
                 >
                   <Text style={styles.loginButtonText}>Iniciar sesión</Text>
                 </TouchableOpacity>

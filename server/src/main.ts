@@ -12,6 +12,15 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.enableCors({
+    origin: '*',
+
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
   const config = new DocumentBuilder()
 
     .setTitle('Banana Monitoring API')
