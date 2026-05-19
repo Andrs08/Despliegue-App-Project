@@ -19,7 +19,7 @@ import { EditProfilePage } from "../../features/profile/ui/pages/edit_profile_pa
 import { PlaceholderPage } from "../../shared/ui/placeholder_page";
 
 export type BitacoraRouteItem = {
-  id: number;
+  id: string;
   title: string;
   lot: string;
   description: string;

@@ -43,7 +43,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 201,
-    description: 'Usuario logueado correctamente',
+    description: 'Usuario loggeado correctamente',
   })
   @Post('login')
   login(@Body() body: LoginDTO) {
