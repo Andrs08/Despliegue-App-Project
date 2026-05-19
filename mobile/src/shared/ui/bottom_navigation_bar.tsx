@@ -16,7 +16,7 @@ import type { RootStackParamList } from "../../core/navigation/app_navigator";
 export type LoggedRouteName =
   | "Dashboard"
   | "Bitacoras"
-  | "Zones"
+  | "Lots"
   | "Notifications"
   | "Profile";
 
@@ -39,7 +39,7 @@ const items: NavigationItem[] = [
     icon: "document-text-outline",
   },
   {
-    route: "Zones",
+    route: "Lots",
     icon: "location-outline",
   },
   {
@@ -101,11 +101,7 @@ export function BottomNavigationBar({ activeRoute }: BottomNavigationBarProps) {
                 }
               }}
             >
-              <Ionicons
-                name={item.icon}
-                size={iconSize}
-                color={isActive ? COLORS.green : COLORS.green}
-              />
+              <Ionicons name={item.icon} size={iconSize} color={COLORS.green} />
             </TouchableOpacity>
           );
         })}

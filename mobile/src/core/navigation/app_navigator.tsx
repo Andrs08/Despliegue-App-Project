@@ -14,6 +14,11 @@ import { DashboardPage } from "../../features/dashboard/ui/pages/dashboard_page"
 import { BitacorasPage } from "../../features/bitacora/ui/pages/bitacoras_page";
 import { AddBitacoraPage } from "../../features/bitacora/ui/pages/add_bitacora_page";
 
+import { LotesPage } from "../../features/lote/ui/pages/lotes_page";
+import { LoteFormPage } from "../../features/lote/ui/pages/lote_form_page";
+import { DetailLotePage } from "../../features/lote/ui/pages/detail_lote_page";
+import { RegisterLoteDataPage } from "../../features/lote/ui/pages/register_lote_data_page";
+
 import { ProfilePage } from "../../features/profile/ui/pages/profile_page";
 import { EditProfilePage } from "../../features/profile/ui/pages/edit_profile_page";
 
@@ -32,6 +37,29 @@ export type UserProfileRouteItem = {
   fullName: string;
   email: string;
   imageUri?: string | null;
+};
+
+export type EtapaLote =
+  | "preparacion_suelo"
+  | "siembra"
+  | "desarrollo_vegetativo"
+  | "floracion"
+  | "fructificacion"
+  | "cosecha";
+
+export type EstadoLote = "Sano" | "Observación" | "Riesgo";
+
+export type LoteRouteItem = {
+  id: number;
+  nombre: string;
+  hectareas: number;
+  temperaturaMinima: number;
+  temperaturaMaxima: number;
+  etapa: EtapaLote;
+  fechaInicio: string;
+  numeroPlantas: number;
+  estado: EstadoLote;
+  produccionEstimada: number;
 };
 
 export type RootStackParamList = {
@@ -60,7 +88,25 @@ export type RootStackParamList = {
         bitacora: BitacoraRouteItem;
       };
 
-  Zones: undefined;
+  Lots: undefined;
+
+  LoteForm:
+    | {
+        mode: "create";
+      }
+    | {
+        mode: "edit";
+        loteId: number;
+      };
+
+  DetailLote: {
+    loteId: number;
+  };
+
+  RegisterLoteData: {
+    loteId: number;
+  };
+
   Notifications: undefined;
 
   Profile: undefined;
@@ -101,15 +147,16 @@ export function AppNavigator() {
 
           <Stack.Screen name="AddBitacora" component={AddBitacoraPage} />
 
-          <Stack.Screen name="Zones">
-            {() => (
-              <PlaceholderPage
-                title="Zonas"
-                subtitle="Aquí podrás gestionar las zonas de cultivo."
-                activeRoute="Zones"
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="Lots" component={LotesPage} />
+
+          <Stack.Screen name="LoteForm" component={LoteFormPage} />
+
+          <Stack.Screen name="DetailLote" component={DetailLotePage} />
+
+          <Stack.Screen
+            name="RegisterLoteData"
+            component={RegisterLoteDataPage}
+          />
 
           <Stack.Screen name="Notifications">
             {() => (
