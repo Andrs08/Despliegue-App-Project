@@ -16,7 +16,12 @@ export class AuthRepository implements IAuthRepository {
       email,
       password,
     });
-    return response.data;
+    return {
+      id: response.data.userId,
+      name: response.data.userName,
+      email: "",
+      token: response.data.token,
+    };
   }
 
   async saveSession(user: AuthenticatedUser): Promise<void> {

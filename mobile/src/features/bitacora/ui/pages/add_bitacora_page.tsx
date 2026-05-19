@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -14,7 +13,6 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import { useFonts } from "expo-font";
 import { GravitasOne_400Regular } from "@expo-google-fonts/gravitas-one";
 import { MaidenOrange_400Regular } from "@expo-google-fonts/maiden-orange";
@@ -26,16 +24,9 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../../../core/navigation/app_navigator";
 import { AppHeader } from "../../../../shared/ui/app_header";
 import { BottomNavigationBar } from "../../../../shared/ui/bottom_navigation_bar";
+import { useAddBitacoraViewModel } from "../viewmodels/add_bitacora_viewmodel";
 
 type AddBitacoraRouteProp = RouteProp<RootStackParamList, "AddBitacora">;
-
-type BitacoraErrors = {
-  title?: string;
-  lot?: string;
-  description?: string;
-};
-
-const LOTES = ["Lote 1", "Lote 2", "Lote 3", "Lote 4"];
 
 export function AddBitacoraPage() {
   const { width, height } = useWindowDimensions();
@@ -55,155 +46,37 @@ export function AddBitacoraPage() {
 
   const route = useRoute<AddBitacoraRouteProp>();
 
-  const isEditMode = route.params?.mode === "edit";
-  const currentBitacora =
-    route.params?.mode === "edit" ? route.params.bitacora : null;
-
-  const [title, setTitle] = useState("");
-  const [lot, setLot] = useState("");
-  const [description, setDescription] = useState("");
-  const [showLots, setShowLots] = useState(false);
-  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
-  const [errors, setErrors] = useState<BitacoraErrors>({});
-  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const {
+    lots,
+    isEditMode,
+    title,
+    lot,
+    description,
+    showLots,
+    selectedImageUri,
+    errors,
+    handleTitleChange,
+    handleDescriptionChange,
+    handleSelectLot,
+    handleToggleLots,
+    handleSelectImage,
+    handleCancel,
+    handleSave,
+  } = useAddBitacoraViewModel({
+    routeParams: route.params,
+    onCancel: () => {
+      navigation.navigate("Bitacoras");
+    },
+    onSaved: () => {
+      navigation.navigate("Bitacoras");
+    },
+  });
 
   const [fontsLoaded] = useFonts({
     GravitasOne_400Regular,
     MaidenOrange_400Regular,
     AlfaSlabOne_400Regular,
   });
-
-  useEffect(() => {
-    if (isEditMode && currentBitacora) {
-      setTitle(currentBitacora.title);
-      setLot(currentBitacora.lot);
-      setDescription(currentBitacora.description);
-      setSelectedImageUri(currentBitacora.imageUri ?? null);
-    } else {
-      setTitle("");
-      setLot("");
-      setDescription("");
-      setSelectedImageUri(null);
-    }
-
-    setErrors({});
-    setHasSubmitted(false);
-    setShowLots(false);
-  }, [isEditMode, currentBitacora?.id]);
-
-  const validateForm = (
-    currentTitle: string,
-    currentLot: string,
-    currentDescription: string
-  ): BitacoraErrors => {
-    const newErrors: BitacoraErrors = {};
-
-    const cleanTitle = currentTitle.trim();
-    const cleanLot = currentLot.trim();
-    const cleanDescription = currentDescription.trim();
-
-    if (!cleanTitle) {
-      newErrors.title = "El título es obligatorio";
-    } else if (cleanTitle.length > 100) {
-      newErrors.title = "El título no puede superar los 100 caracteres";
-    }
-
-    if (!cleanLot) {
-      newErrors.lot = "Debes escoger un lote";
-    }
-
-    if (!cleanDescription) {
-      newErrors.description = "La descripción es obligatoria";
-    }
-
-    return newErrors;
-  };
-
-  const handleTitleChange = (value: string) => {
-    setTitle(value);
-
-    if (hasSubmitted) {
-      setErrors(validateForm(value, lot, description));
-    }
-  };
-
-  const handleDescriptionChange = (value: string) => {
-    setDescription(value);
-
-    if (hasSubmitted) {
-      setErrors(validateForm(title, lot, value));
-    }
-  };
-
-  const handleSelectLot = (selectedLot: string) => {
-    if (isEditMode) {
-      return;
-    }
-
-    setLot(selectedLot);
-    setShowLots(false);
-
-    if (hasSubmitted) {
-      setErrors(validateForm(title, selectedLot, description));
-    }
-  };
-
-  const handleToggleLots = () => {
-    if (isEditMode) {
-      return;
-    }
-
-    setShowLots(!showLots);
-  };
-
-  const handleSelectImage = async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert(
-        "Permiso requerido",
-        "Debes permitir el acceso a tus fotos para subir una imagen."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      quality: 0.8,
-      aspect: [4, 3],
-    });
-
-    if (!result.canceled && result.assets.length > 0) {
-      setSelectedImageUri(result.assets[0].uri);
-    }
-  };
-
-  const handleCancel = () => {
-    navigation.navigate("Bitacoras");
-  };
-
-  const handleSave = () => {
-    setHasSubmitted(true);
-
-    const validationErrors = validateForm(title, lot, description);
-    setErrors(validationErrors);
-
-    if (Object.keys(validationErrors).length > 0) {
-      return;
-    }
-
-    if (isEditMode) {
-      Alert.alert(
-        "Bitácora actualizada",
-        "Los cambios de la bitácora se guardaron correctamente."
-      );
-    } else {
-      Alert.alert("Bitácora guardada", "La bitácora se guardó correctamente.");
-    }
-
-    navigation.navigate("Bitacoras");
-  };
 
   if (!fontsLoaded) {
     return null;
@@ -308,7 +181,7 @@ export function AddBitacoraPage() {
 
                 {!isEditMode && showLots ? (
                   <View style={styles.dropdown}>
-                    {LOTES.map((item) => (
+                    {lots.map((item) => (
                       <TouchableOpacity
                         key={item}
                         style={styles.dropdownItem}

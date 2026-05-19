@@ -9,7 +9,11 @@ export class CreateNoteUseCase {
     private readonly fileStorage: IImageStorageService,
   ) {}
 
-  async execute(data: CreateNoteDto, file?: any): Promise<Note> {
+  async execute(
+    data: CreateNoteDto,
+    userId: string,
+    file?: any,
+  ): Promise<Note> {
     let finalImageUrl = data.imagen_url || null;
 
     if (file) {
@@ -22,7 +26,7 @@ export class CreateNoteUseCase {
       data.description,
       finalImageUrl,
       new Date(),
-      data.usuario_id,
+      userId,
     );
     return await this.noteRepository.save(newNote);
   }
