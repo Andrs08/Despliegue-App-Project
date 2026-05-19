@@ -1,6 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { BitacoraRouteItem } from "../../../../core/navigation/app_navigator";
+import { GetNotesUseCase } from "../../application/get-notes.use-case";
+import { NoteRepository } from "../../infrastructure/persistence/notes.repository";
+
+const notesRepository = new NoteRepository();
+const getNoteUseCase = new GetNotesUseCase(notesRepository);
 
 type SortOption = "recent" | "old";
 
@@ -9,47 +14,16 @@ type UseBitacorasViewModelParams = {
   onAddBitacora: () => void;
 };
 
-const BITACORAS: BitacoraRouteItem[] = [
-  {
-    id: 1,
-    title: "Bitácora de riego semanal",
-    lot: "Lote 1",
-    description: "Se realizó revisión general del riego semanal del cultivo.",
-    imageUri: null,
-    createdAt: "2026-05-15",
-  },
-  {
-    id: 2,
-    title: "Bitácora de revisión de hojas",
-    lot: "Lote 2",
-    description: "Se revisó el estado de las hojas y se registraron novedades.",
-    imageUri: null,
-    createdAt: "2026-05-12",
-  },
-  {
-    id: 3,
-    title: "Bitácora de control de plagas",
-    lot: "Lote 1",
-    description: "Se hizo una inspección para identificar posibles plagas.",
-    imageUri: null,
-    createdAt: "2026-05-10",
-  },
-  {
-    id: 4,
-    title: "Bitácora de fertilización",
-    lot: "Lote 3",
-    description: "Se registró la aplicación de fertilizante en el cultivo.",
-    imageUri: null,
-    createdAt: "2026-05-08",
-  },
-];
-
 const LOTES = ["Todos", "Lote 1", "Lote 2", "Lote 3", "Lote 4"];
 
 export function useBitacorasViewModel({
   onOpenBitacora,
   onAddBitacora,
 }: UseBitacorasViewModelParams) {
+  const [bitacoras, setBitacoras] = useState<BitacoraRouteItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
   const [showMenu, setShowMenu] = useState(false);
   const [showLots, setShowLots] = useState(false);
   const [selectedLot, setSelectedLot] = useState("Todos");
@@ -58,8 +32,8 @@ export function useBitacorasViewModel({
   const filteredBitacoras = useMemo(() => {
     const filtered =
       selectedLot === "Todos"
-        ? BITACORAS
-        : BITACORAS.filter((item) => item.lot === selectedLot);
+        ? bitacoras
+        : bitacoras.filter((item) => item.lot === selectedLot);
 
     return [...filtered].sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
@@ -74,8 +48,28 @@ export function useBitacorasViewModel({
   }, [selectedLot, sortOption]);
 
   const currentFilterLabel = `${
-    selectedLot === "Todos" ? "Mostrando todos los lotes" : `Mostrando ${selectedLot}`
+    selectedLot === "Todos"
+      ? "Mostrando todos los lotes"
+      : `Mostrando ${selectedLot}`
   } · ${sortOption === "recent" ? "Más recientes" : "Más antiguas"}`;
+
+  const loadNotes = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getNoteUseCase.execute();
+      setBitacoras(data);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Error al registrarse";
+      setApiError(errorMessage);
+    }
+  };
+
+  useEffect(() => {
+    loadNotes();
+  }, []);
 
   const handleToggleMenu = () => {
     setShowMenu((currentValue) => !currentValue);
