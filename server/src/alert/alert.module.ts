@@ -6,6 +6,8 @@ import { GetAlertsUseCase } from './application/use-cases/get-alerts.use-case';
 import { GetLotAlertsUseCase } from './application/use-cases/get-lot-alerts.use-case';
 import { MarkAlertAsResolvedUseCase } from './application/use-cases/mark-alert-as-resolved.use-case';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { GenerateIrrigationAlertsUseCase } from './application/use-cases/generate-irrigation-alerts.use-case';
+import { PrismaLoteRepository } from 'src/lots/infrastructure/persitence/prisma-lot.repository';
 
 @Module({
   imports: [PrismaModule],
@@ -13,7 +15,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 
   providers: [
     PrismaAlertRepository,
-
+    PrismaLoteRepository,
     {
       provide: CreateAlertUseCase,
 
@@ -49,8 +51,25 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 
       inject: [PrismaAlertRepository],
     },
+
+    {
+      provide: GenerateIrrigationAlertsUseCase,
+
+      useFactory: (
+        lotRepository: PrismaLoteRepository,
+
+        alertRepository: PrismaAlertRepository,
+      ) =>
+        new GenerateIrrigationAlertsUseCase(
+          lotRepository,
+
+          alertRepository,
+        ),
+
+      inject: [PrismaLoteRepository, PrismaAlertRepository],
+    },
   ],
 
-  exports: [CreateAlertUseCase],
+  exports: [CreateAlertUseCase, GenerateIrrigationAlertsUseCase],
 })
 export class AlertModule {}

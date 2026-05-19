@@ -55,4 +55,22 @@ export class PrismaAlertRepository implements AlertRepository {
 
     return AlertMapper.toDomain(alerta);
   }
+
+  async findIrrigationAlertToday(loteId: string) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    return this.prisma.alerta.findFirst({
+      where: {
+        lote_id: loteId,
+        tipo: 'RIEGO',
+        created_at: {
+          gte: start,
+          lte: end,
+        },
+      },
+    });
+  }
 }

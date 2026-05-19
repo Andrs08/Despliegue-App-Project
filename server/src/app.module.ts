@@ -9,6 +9,8 @@ import { AlertModule } from './alert/alert.module';
 import { AgriculturalRulesModule } from './agricultural-rules/agricultural-rules.module';
 import { SharedModule } from './shared/shared.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { SchedulerModule } from './scheduler/irrigation.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     StageRecordModule,
     AlertModule,
     AgriculturalRulesModule,
+    ScheduleModule.forRoot(),
+    SchedulerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
