@@ -1,12 +1,12 @@
 export class Note {
   constructor(
-    public readonly id: string,
-    public readonly lote_id: string | null,
-    public readonly titulo: string,
-    public readonly description: string,
-    public readonly imagen_url: string | null,
-    public readonly fecha: Date,
-    public readonly usuario_id: string,
-    public readonly created_at?: Date,
+    public id: string,
+    public lote_id: string | null,
+    public titulo: string,
+    public description: string,
+    public imagen_url: string | null,
+    public fecha: Date,
+    public usuario_id: string,
+    public created_at?: Date,
   ) {}
 }

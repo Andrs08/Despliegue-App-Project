@@ -71,6 +71,7 @@ export class PrismaNoteRepository implements INoteRepository {
       prismaNote.description,
       prismaNote.imagen_url,
       prismaNote.fecha,
+      prismaNote.usuario_id,
       prismaNote.created_at,
     );
   }

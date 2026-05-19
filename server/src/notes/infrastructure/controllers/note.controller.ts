@@ -37,8 +37,13 @@ export class NoteController {
   async create(
     @Body() createNoteDto: CreateNoteDto,
     @UploadedFile() file: any,
+    @Req() req: any,
   ) {
-    return await this.createNoteUseCase.execute(createNoteDto, file);
+    return await this.createNoteUseCase.execute(
+      createNoteDto,
+      req.user.userId,
+      file,
+    );
   }
 
   @Get()
