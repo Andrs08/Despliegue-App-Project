@@ -10,6 +10,11 @@ export class LoginUseCase {
 
   async execute(data: any) {
     const user = await this.userRepo.findByEmail(data.email);
+    console.log(user);
+
+    const userId = user?.id;
+
+    const userName = user?.name;
 
     if (!user)
       throw new UnauthorizedException(
@@ -28,6 +33,6 @@ export class LoginUseCase {
       email: user.email,
     });
 
-    return { token };
+    return { userId, userName, token };
   }
 }

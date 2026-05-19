@@ -1,4 +1,4 @@
-import { AuthenticatedUser } from "../../domain/entities/autheticated-user-entity";
+import { AuthenticatedUser } from "../../domain/entities/autheticated-user.entity";
 import { IAuthRepository } from "../../domain/repositories/auth.repository.interface";
 
 export class LoginUseCase {
