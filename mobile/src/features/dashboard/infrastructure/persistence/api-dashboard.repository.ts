@@ -11,11 +11,8 @@ import {
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const CACHE_KEY = process.env.EXPO_PUBLIC_LOCAL_CACHE_KEY;
-console.log('CACHE_KEY: '+CACHE_KEY)
 const SESSION_TOKEN = process.env.EXPO_PUBLIC_LOCAL_TOKEN;
-console.log('SESSION_TOKEN: '+SESSION_TOKEN)
 const SESSION_NAME = process.env.EXPO_PUBLIC_LOCAL_USER_NAME
-console.log('SESSION_NAME: '+SESSION_NAME)
 
 export class ApiDashboardRepository implements DashboardRepository {
   constructor(private storage: ILocalPreferences) {}
