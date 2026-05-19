@@ -19,10 +19,11 @@ import { LoteFormPage } from "../../features/lote/ui/pages/lote_form_page";
 import { DetailLotePage } from "../../features/lote/ui/pages/detail_lote_page";
 import { RegisterLoteDataPage } from "../../features/lote/ui/pages/register_lote_data_page";
 
+import { AlertsPage } from "../../features/alerts/ui/pages/alerts_page";
+import { DetailAlertPage } from "../../features/alerts/ui/pages/detail_alert_page";
+
 import { ProfilePage } from "../../features/profile/ui/pages/profile_page";
 import { EditProfilePage } from "../../features/profile/ui/pages/edit_profile_page";
-
-import { PlaceholderPage } from "../../shared/ui/placeholder_page";
 
 export type BitacoraRouteItem = {
   id: number;
@@ -109,6 +110,10 @@ export type RootStackParamList = {
 
   Notifications: undefined;
 
+  DetailAlert: {
+    lotId: number;
+  };
+
   Profile: undefined;
 
   EditProfile: {
@@ -158,15 +163,9 @@ export function AppNavigator() {
             component={RegisterLoteDataPage}
           />
 
-          <Stack.Screen name="Notifications">
-            {() => (
-              <PlaceholderPage
-                title="Notificaciones"
-                subtitle="Aquí aparecerán tus alertas y recordatorios."
-                activeRoute="Notifications"
-              />
-            )}
-          </Stack.Screen>
+          <Stack.Screen name="Notifications" component={AlertsPage} />
+
+          <Stack.Screen name="DetailAlert" component={DetailAlertPage} />
 
           <Stack.Screen name="Profile" component={ProfilePage} />
 

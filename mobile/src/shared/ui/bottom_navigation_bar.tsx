@@ -101,7 +101,11 @@ export function BottomNavigationBar({ activeRoute }: BottomNavigationBarProps) {
                 }
               }}
             >
-              <Ionicons name={item.icon} size={iconSize} color={COLORS.green} />
+              <Ionicons
+                name={item.icon}
+                size={iconSize}
+                color={COLORS.green}
+              />
             </TouchableOpacity>
           );
         })}
