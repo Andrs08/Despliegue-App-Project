@@ -168,7 +168,6 @@ export function LotesPage() {
               {lotes.length > 0 ? (
                 <View style={styles.listContainer}>
                   {lotes.map((lote) => {
-                    const statusColor = getEstadoColor(lote.estado);
                     const statusSoftColor = getEstadoSoftColor(lote.estado);
 
                     return (
@@ -189,17 +188,6 @@ export function LotesPage() {
 
                         <View style={styles.loteInfo}>
                           <Text style={styles.loteName}>{lote.nombre}</Text>
-
-                          <Text
-                            style={[
-                              styles.loteHealthStatus,
-                              {
-                                color: statusColor,
-                              },
-                            ]}
-                          >
-                            Estado de salud: {lote.estado}
-                          </Text>
                         </View>
 
                         <Ionicons
@@ -249,16 +237,6 @@ function getFilterColor(filter: FilterOption): string {
   };
 
   return colors[filter];
-}
-
-function getEstadoColor(estado: EstadoLote): string {
-  const colors: Record<EstadoLote, string> = {
-    Sano: COLORS.blue,
-    Observación: COLORS.yellow,
-    Riesgo: COLORS.pink,
-  };
-
-  return colors[estado];
 }
 
 function getEstadoSoftColor(estado: EstadoLote): string {
@@ -393,17 +371,13 @@ const styles = StyleSheet.create({
   },
   loteInfo: {
     flex: 1,
+    justifyContent: "center",
   },
   loteName: {
     fontFamily: "MaidenOrange_400Regular",
     color: COLORS.green,
-    fontSize: 16,
-    lineHeight: 19,
-  },
-  loteHealthStatus: {
-    fontFamily: "MaidenOrange_400Regular",
-    fontSize: 12,
-    lineHeight: 15,
+    fontSize: 17,
+    lineHeight: 21,
   },
   addContainer: {
     alignSelf: "flex-end",
