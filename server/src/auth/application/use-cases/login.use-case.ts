@@ -10,6 +10,7 @@ export class LoginUseCase {
 
   async execute(data: any) {
     const user = await this.userRepo.findByEmail(data.email);
+    console.log(user);
 
     const userId = user?.id;
 
