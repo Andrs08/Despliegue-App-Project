@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -42,6 +43,8 @@ export function BitacorasPage() {
 
   const {
     lots,
+    isLoading,
+    apiError,
     showMenu,
     showLots,
     selectedLot,
@@ -154,24 +157,54 @@ export function BitacorasPage() {
 
                   {showLots ? (
                     <View style={styles.lotsContainer}>
-                      {lots.map((lot) => (
-                        <TouchableOpacity
-                          key={lot}
-                          style={styles.lotItem}
-                          activeOpacity={0.75}
-                          onPress={() => handleSelectLot(lot)}
-                        >
-                          <Text
-                            style={[
-                              styles.lotText,
-                              selectedLot === lot ? styles.activeLotText : null,
-                            ]}
+                      {isLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={COLORS.green}
+                          style={{ marginVertical: 12 }}
+                        />
+                      ) : lots && lots.length > 0 ? (
+                        lots.map((lot) => (
+                          <TouchableOpacity
+                            key={lot}
+                            style={styles.lotItem}
+                            activeOpacity={0.75}
+                            onPress={() => handleSelectLot(lot)}
                           >
-                            {lot}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                            <Text
+                              style={[
+                                styles.lotText,
+                                selectedLot === lot
+                                  ? styles.activeLotText
+                                  : null,
+                              ]}
+                            >
+                              {lot}
+                            </Text>
+                          </TouchableOpacity>
+                        ))
+                      ) : (
+                        <Text
+                          style={[
+                            styles.lotText,
+                            { textAlign: "center", opacity: 0.6 },
+                          ]}
+                        >
+                          No hay lotes disponibles
+                        </Text>
+                      )}
                     </View>
+                  ) : null}
+
+                  {apiError ? (
+                    <Text
+                      style={[
+                        styles.errorText,
+                        { textAlign: "center", marginBottom: 16 },
+                      ]}
+                    >
+                      {apiError}
+                    </Text>
                   ) : null}
 
                   <TouchableOpacity
@@ -208,40 +241,57 @@ export function BitacorasPage() {
                 </View>
               ) : null}
 
-              <Text style={styles.currentFilterText}>
-                {currentFilterLabel}
-              </Text>
+              <Text style={styles.currentFilterText}>{currentFilterLabel}</Text>
 
               <View style={styles.listContainer}>
-                {filteredBitacoras.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.bitacoraCard,
-                      {
-                        minHeight: itemHeight,
-                      },
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => handleOpenBitacora(item)}
-                  >
-                    <Text
+                {isLoading ? (
+                  <ActivityIndicator
+                    size="small"
+                    color={COLORS.green}
+                    style={{ marginVertical: 12 }}
+                  />
+                ) : filteredBitacoras && filteredBitacoras.length > 0 ? (
+                  filteredBitacoras.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
                       style={[
-                        styles.bitacoraTitle,
+                        styles.bitacoraCard,
                         {
-                          fontSize: bitacoraTitleFontSize,
-                          lineHeight: bitacoraTitleFontSize + 4,
+                          minHeight: itemHeight,
                         },
                       ]}
+                      activeOpacity={0.85}
+                      onPress={() => handleOpenBitacora(item)}
                     >
-                      {item.title}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.bitacoraTitle,
+                          {
+                            fontSize: bitacoraTitleFontSize,
+                            lineHeight: bitacoraTitleFontSize + 4,
+                          },
+                        ]}
+                      >
+                        {item.title}
+                      </Text>
 
-                    <Text style={styles.bitacoraMeta}>
-                      {item.lot} · {item.createdAt}
+                      <Text style={styles.bitacoraMeta}>
+                        {item.lot} · {item.createdAt}
+                      </Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  !apiError && (
+                    <Text
+                      style={[
+                        styles.lotText,
+                        { textAlign: "center", opacity: 0.6 },
+                      ]}
+                    >
+                      No hay bitácoras disponibles
                     </Text>
-                  </TouchableOpacity>
-                ))}
+                  )
+                )}
               </View>
 
               <View style={styles.addContainer}>
@@ -250,11 +300,7 @@ export function BitacorasPage() {
                   activeOpacity={0.85}
                   onPress={handleAddBitacora}
                 >
-                  <Ionicons
-                    name="add"
-                    size={24}
-                    color={COLORS.background}
-                  />
+                  <Ionicons name="add" size={24} color={COLORS.background} />
                 </TouchableOpacity>
 
                 <Text style={styles.addText}>Agregar{"\n"}bitácora</Text>
@@ -275,6 +321,7 @@ const COLORS = {
   gray: "#959595",
   yellow: "#F6C94D",
   pink: "#E4568B",
+  error: "#C94C4C",
 };
 
 const styles = StyleSheet.create({
@@ -444,5 +491,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 13,
     textAlign: "center",
+  },
+  errorText: {
+    fontFamily: "MaidenOrange_400Regular",
+    color: COLORS.error,
+    fontSize: 14,
+    lineHeight: 17,
+    marginBottom: 13,
+    marginLeft: 4,
   },
 });

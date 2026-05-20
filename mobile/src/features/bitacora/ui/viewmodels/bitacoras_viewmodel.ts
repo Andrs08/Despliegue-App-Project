@@ -30,22 +30,31 @@ export function useBitacorasViewModel({
   const [sortOption, setSortOption] = useState<SortOption>("recent");
 
   const filteredBitacoras = useMemo(() => {
-    const filtered =
-      selectedLot === "Todos"
-        ? bitacoras
-        : bitacoras.filter((item) => item.lot === selectedLot);
+    // 1. Clonamos el arreglo original para evitar mutaciones directas
+    let result = [...bitacoras];
 
-    return [...filtered].sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
+    // 2. Filtrado por lote
+    if (selectedLot !== "Todos") {
+      result = result.filter((b) => b.lot === selectedLot);
+    }
+
+    // 3. Ordenamiento seguro mediante strings (Evita bugs de NaN en React Native)
+    result.sort((a, b) => {
+      // Si las propiedades no existen por seguridad, asignamos strings vacíos
+      const dateA = a.createdAt || "";
+      const dateB = b.createdAt || "";
 
       if (sortOption === "recent") {
-        return dateB - dateA;
+        // De mayor a menor (Más recientes primero)
+        return dateB.localeCompare(dateA);
+      } else {
+        // De menor a mayor (Más antiguas primero)
+        return dateA.localeCompare(dateB);
       }
-
-      return dateA - dateB;
     });
-  }, [selectedLot, sortOption]);
+
+    return result;
+  }, [bitacoras, selectedLot, sortOption]);
 
   const currentFilterLabel = `${
     selectedLot === "Todos"
@@ -64,6 +73,8 @@ export function useBitacorasViewModel({
         error.message ||
         "Error al registrarse";
       setApiError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -107,6 +118,8 @@ export function useBitacorasViewModel({
 
   return {
     lots: LOTES,
+    isLoading,
+    apiError,
     showMenu,
     showLots,
     selectedLot,
