@@ -8,9 +8,17 @@ import type {
 } from "../../../../core/navigation/app_navigator";
 import { DeleteNotesUseCase } from "../../application/delete.-note.use-case";
 import { NoteRepository } from "../../infrastructure/persistence/notes.repository";
+import { LocalPreferencesAsyncStorage } from "@/src/core/LocalPreferencesAsyncStorage";
+import { GetLotesUseCase } from "@/src/features/lote/application/use-cases/get-lots.use-case";
+import { ApiLoteRepository } from "@/src/features/lote/infrastructure/persistence/api_lot.repository";
+import { Lote } from "@/src/features/lote/domain/entities/lot.entity";
 
 const notesRepository = new NoteRepository();
 const deleteNoteUseCase = new DeleteNotesUseCase(notesRepository);
+
+const localPrefs = LocalPreferencesAsyncStorage.getInstance();
+const loteRepository = new ApiLoteRepository(localPrefs);
+const getLotesUseCase = new GetLotesUseCase(loteRepository);
 
 type AddBitacoraRouteParams = RootStackParamList["AddBitacora"];
 
@@ -25,8 +33,6 @@ type UseAddBitacoraViewModelParams = {
   onCancel: () => void;
   onSaved: () => void;
 };
-
-const LOTES = ["Lote 1", "Lote 2", "Lote 3", "Lote 4"];
 
 function validateBitacoraForm(
   currentTitle: string,
@@ -73,6 +79,9 @@ export function useAddBitacoraViewModel({
   const [errors, setErrors] = useState<BitacoraErrors>({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [lotes, setLotes] = useState<Lote[]>([]);
 
   useEffect(() => {
     if (isEditMode && currentBitacora) {
@@ -213,8 +222,30 @@ export function useAddBitacoraViewModel({
     onSaved();
   };
 
+  const loadLotes = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getLotesUseCase.execute();
+      setLotes(data);
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Error al cargar datos";
+      setApiError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLotes();
+  }, []);
+
   return {
-    lots: LOTES,
+    lots: lotes,
+    isLoading,
+    apiError,
     isEditMode,
     title,
     lot,

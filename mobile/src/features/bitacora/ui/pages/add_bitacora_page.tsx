@@ -212,12 +212,12 @@ export function AddBitacoraPage() {
                   <View style={styles.dropdown}>
                     {lots.map((item) => (
                       <TouchableOpacity
-                        key={item}
+                        key={item.id}
                         style={styles.dropdownItem}
                         activeOpacity={0.8}
-                        onPress={() => handleSelectLot(item)}
+                        onPress={() => handleSelectLot(item.nombre)}
                       >
-                        <Text style={styles.dropdownText}>{item}</Text>
+                        <Text style={styles.dropdownText}>{item.nombre}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>

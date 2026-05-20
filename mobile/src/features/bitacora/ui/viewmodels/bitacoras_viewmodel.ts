@@ -3,9 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import type { BitacoraRouteItem } from "../../../../core/navigation/app_navigator";
 import { GetNotesUseCase } from "../../application/get-notes.use-case";
 import { NoteRepository } from "../../infrastructure/persistence/notes.repository";
+import { GetLotesUseCase } from "@/src/features/lote/application/use-cases/get-lots.use-case";
+import { ApiLoteRepository } from "@/src/features/lote/infrastructure/persistence/api_lot.repository";
+import { LocalPreferencesAsyncStorage } from "@/src/core/LocalPreferencesAsyncStorage";
+import { Lote } from "@/src/features/lote/domain/entities/lot.entity";
 
 const notesRepository = new NoteRepository();
 const getNoteUseCase = new GetNotesUseCase(notesRepository);
+
+const localPrefs = LocalPreferencesAsyncStorage.getInstance();
+const loteRepository = new ApiLoteRepository(localPrefs);
+const getLotesUseCase = new GetLotesUseCase(loteRepository);
 
 type SortOption = "recent" | "old";
 
@@ -14,12 +22,11 @@ type UseBitacorasViewModelParams = {
   onAddBitacora: () => void;
 };
 
-const LOTES = ["Todos", "Lote 1", "Lote 2", "Lote 3", "Lote 4"];
-
 export function useBitacorasViewModel({
   onOpenBitacora,
   onAddBitacora,
 }: UseBitacorasViewModelParams) {
+  const [lotes, setLotes] = useState<Lote[]>([]);
   const [bitacoras, setBitacoras] = useState<BitacoraRouteItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -29,26 +36,31 @@ export function useBitacorasViewModel({
   const [selectedLot, setSelectedLot] = useState("Todos");
   const [sortOption, setSortOption] = useState<SortOption>("recent");
 
-  const filteredBitacoras = useMemo(() => {
-    // 1. Clonamos el arreglo original para evitar mutaciones directas
-    let result = [...bitacoras];
+  const mappedBitacoras = useMemo(() => {
+    return bitacoras.map((bitacora) => {
+      const loteEncontrado = lotes.find((l) => l.id === bitacora.lot);
 
-    // 2. Filtrado por lote
+      return {
+        ...bitacora,
+        lot: loteEncontrado ? loteEncontrado.nombre : bitacora.lot,
+      };
+    });
+  }, [bitacoras, lotes]);
+
+  const filteredBitacoras = useMemo(() => {
+    let result = [...mappedBitacoras];
+
     if (selectedLot !== "Todos") {
       result = result.filter((b) => b.lot === selectedLot);
     }
 
-    // 3. Ordenamiento seguro mediante strings (Evita bugs de NaN en React Native)
     result.sort((a, b) => {
-      // Si las propiedades no existen por seguridad, asignamos strings vacíos
       const dateA = a.createdAt || "";
       const dateB = b.createdAt || "";
 
       if (sortOption === "recent") {
-        // De mayor a menor (Más recientes primero)
         return dateB.localeCompare(dateA);
       } else {
-        // De menor a mayor (Más antiguas primero)
         return dateA.localeCompare(dateB);
       }
     });
@@ -62,16 +74,20 @@ export function useBitacorasViewModel({
       : `Mostrando ${selectedLot}`
   } · ${sortOption === "recent" ? "Más recientes" : "Más antiguas"}`;
 
-  const loadNotes = async () => {
+  const loadInitialData = async () => {
     try {
       setIsLoading(true);
-      const data = await getNoteUseCase.execute();
-      setBitacoras(data);
+      const [notesData, lotsData] = await Promise.all([
+        getNoteUseCase.execute(),
+        getLotesUseCase.execute(),
+      ]);
+      setBitacoras(notesData);
+      setLotes(lotsData);
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
-        "Error al registrarse";
+        "Error al cargar datos";
       setApiError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -79,7 +95,7 @@ export function useBitacorasViewModel({
   };
 
   useEffect(() => {
-    loadNotes();
+    loadInitialData();
   }, []);
 
   const handleToggleMenu = () => {
@@ -117,7 +133,7 @@ export function useBitacorasViewModel({
   };
 
   return {
-    lots: LOTES,
+    lotes,
     isLoading,
     apiError,
     showMenu,

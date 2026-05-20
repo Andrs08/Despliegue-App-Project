@@ -61,7 +61,7 @@ export function BitacorasPage() {
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const {
-    lots,
+    lotes,
     isLoading,
     apiError,
     showMenu,
@@ -182,23 +182,23 @@ export function BitacorasPage() {
                           color={COLORS.green}
                           style={{ marginVertical: 12 }}
                         />
-                      ) : lots && lots.length > 0 ? (
-                        lots.map((lot) => (
+                      ) : lotes && lotes.length > 0 ? (
+                        lotes.map((lot) => (
                           <TouchableOpacity
-                            key={lot}
+                            key={lot.id}
                             style={styles.lotItem}
                             activeOpacity={0.75}
-                            onPress={() => handleSelectLot(lot)}
+                            onPress={() => handleSelectLot(lot.nombre)}
                           >
                             <Text
                               style={[
                                 styles.lotText,
-                                selectedLot === lot
+                                selectedLot === lot.nombre
                                   ? styles.activeLotText
                                   : null,
                               ]}
                             >
-                              {lot}
+                              {lot.nombre}
                             </Text>
                           </TouchableOpacity>
                         ))
