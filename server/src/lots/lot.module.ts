@@ -11,6 +11,7 @@ import { AlertModule } from 'src/alert/alert.module';
 import { AgriculturalRulesModule } from 'src/agricultural-rules/agricultural-rules.module';
 import { EvaluateLotUseCase } from 'src/agricultural-rules/application/use-cases/evaluate-lot.use-case';
 import { CreateAlertUseCase } from 'src/alert/application/use-cases/create-alert.use-case';
+import { FilterLotsUseCase } from './application/use-cases/get-lots-by-filter.use-case';
 
 @Module({
   imports: [PrismaModule, AlertModule, AgriculturalRulesModule],
@@ -44,6 +45,11 @@ import { CreateAlertUseCase } from 'src/alert/application/use-cases/create-alert
     {
       provide: DeleteLoteUseCase,
       useFactory: (repo: PrismaLoteRepository) => new DeleteLoteUseCase(repo),
+      inject: [PrismaLoteRepository],
+    },
+    {
+      provide: FilterLotsUseCase,
+      useFactory: (repo: PrismaLoteRepository) => new FilterLotsUseCase(repo), 
       inject: [PrismaLoteRepository],
     },
   ],

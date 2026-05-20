@@ -10,15 +10,18 @@ import {
   HttpStatus,
   Req,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { CreateLoteUseCase } from '../../application/use-cases/create-lote.use-case';
 import { GetLotesUseCase } from '../../application/use-cases/get-lots.use-case';
 import { UpdateLoteUseCase } from '../../application/use-cases/update-lot.use-case';
 import { GetLoteUseCase } from 'src/lots/application/use-cases/get-lot.use-case';
 import { DeleteLoteUseCase } from 'src/lots/application/use-cases/delete-lot.use-case';
+import { FilterLotsUseCase } from 'src/lots/application/use-cases/get-lots-by-filter.use-case';
 import { CreateLoteDTO } from '../dtos/create-lote.dto';
 import { UpdateLoteDTO } from '../dtos/update-lot.dto';
 import { JwtGuard } from '../../../auth/infrastructure/guards/jwt.guard';
+import { FilterLotsDTO } from '../dtos/filter-lot-by-status.dto';
 
 @UseGuards(JwtGuard)
 @Controller('lotes')
@@ -29,6 +32,7 @@ export class LoteController {
     private updateLote: UpdateLoteUseCase,
     private getLote: GetLoteUseCase,
     private deleteLote: DeleteLoteUseCase,
+    private filterLots: FilterLotsUseCase,
   ) {}
 
   @Post()
@@ -41,6 +45,11 @@ export class LoteController {
   findAll(@Req() req: any) {
     const userId = req.user.userId;
     return this.getLotes.execute(userId);
+  }
+
+  @Get('filter')
+  async findFilters(@Req() req: any, @Query() filters: FilterLotsDTO) {
+    return this.filterLots.execute(req.user.userId, filters);
   }
 
   @Get(':id')

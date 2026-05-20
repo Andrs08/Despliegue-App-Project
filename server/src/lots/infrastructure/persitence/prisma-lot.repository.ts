@@ -6,6 +6,8 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { LotStatus } from 'src/lots/domain/interfaces/lot-status.enum';
+import { FilterLotsDTO } from '../dtos/filter-lot-by-status.dto';
 
 @Injectable()
 export class PrismaLoteRepository implements LoteRepository {
@@ -59,11 +61,9 @@ export class PrismaLoteRepository implements LoteRepository {
       where: { id },
       data,
     });
-
     if (!updated) {
       return null;
     }
-
     return this.toDomain(updated);
   }
 
@@ -75,6 +75,69 @@ export class PrismaLoteRepository implements LoteRepository {
     } catch {
       throw new NotFoundException('No se pudo eliminar el lote');
     }
+  }
+
+  async findWithFilters(
+    userId: string,
+    filters: FilterLotsDTO,
+  ): Promise<Lot[]> {
+    const where: any = {
+      usuario_id: userId,
+    };
+
+    if (filters.nombre) {
+      where.nombre = {
+        contains: filters.nombre.trim(),
+        mode: 'insensitive',
+      };
+    }
+
+    if (filters.estado === LotStatus.HEALTHY) {
+      where.alerta = {
+        none: {
+          resuelta: false,
+        },
+      };
+    }
+
+    if (filters.estado === LotStatus.RISK) {
+      where.alerta = {
+        some: {
+          resuelta: false,
+          OR: [{ nivel: 'ALTO' }, { nivel: 'MEDIO' }],
+        },
+      };
+    }
+
+    if (filters.estado === LotStatus.OBSERVATION) {
+      where.AND = [
+        {
+          alerta: {
+            some: {
+              resuelta: false,
+
+              nivel: 'BAJO',
+            },
+          },
+        },
+        {
+          alerta: {
+            none: {
+              resuelta: false,
+              OR: [{ nivel: 'ALTO' }, { nivel: 'MEDIO' }],
+            },
+          },
+        },
+      ];
+    }
+
+    const lotes = await this.prisma.lote.findMany({
+      where,
+      include: {
+        alerta: true,
+      },
+    });
+    return lotes.map(this.toDomain);
   }
 
   private toDomain(lote: any): Lot {
@@ -91,5 +154,3 @@ export class PrismaLoteRepository implements LoteRepository {
     );
   }
 }
-
-
