@@ -6,6 +6,11 @@ import type {
   BitacoraRouteItem,
   RootStackParamList,
 } from "../../../../core/navigation/app_navigator";
+import { DeleteNotesUseCase } from "../../application/delete.-note.use-case";
+import { NoteRepository } from "../../infrastructure/persistence/notes.repository";
+
+const notesRepository = new NoteRepository();
+const deleteNoteUseCase = new DeleteNotesUseCase(notesRepository);
 
 type AddBitacoraRouteParams = RootStackParamList["AddBitacora"];
 
@@ -26,7 +31,7 @@ const LOTES = ["Lote 1", "Lote 2", "Lote 3", "Lote 4"];
 function validateBitacoraForm(
   currentTitle: string,
   currentLot: string,
-  currentDescription: string
+  currentDescription: string,
 ): BitacoraErrors {
   const newErrors: BitacoraErrors = {};
 
@@ -67,6 +72,7 @@ export function useAddBitacoraViewModel({
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
   const [errors, setErrors] = useState<BitacoraErrors>({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
   useEffect(() => {
     if (isEditMode && currentBitacora) {
@@ -85,6 +91,41 @@ export function useAddBitacoraViewModel({
     setHasSubmitted(false);
     setShowLots(false);
   }, [isEditMode, currentBitacora?.id]);
+
+  const handleToggleOptionsMenu = () => {
+    setShowOptionsMenu((currentValue) => !currentValue);
+  };
+
+  const handleDelete = () => {
+    setShowOptionsMenu(false);
+
+    if (
+      !routeParams ||
+      !("bitacora" in routeParams) ||
+      routeParams.mode !== "edit"
+    ) {
+      return;
+    }
+
+    Alert.alert(
+      "Eliminar bitácora",
+      "¿Estás seguro de que deseas eliminar esta bitácora?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            await deleteNoteUseCase.execute(routeParams.bitacora.id);
+            onCancel();
+          },
+        },
+      ],
+    );
+  };
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
@@ -129,7 +170,7 @@ export function useAddBitacoraViewModel({
     if (!permission.granted) {
       Alert.alert(
         "Permiso requerido",
-        "Debes permitir el acceso a tus fotos para subir una imagen."
+        "Debes permitir el acceso a tus fotos para subir una imagen.",
       );
       return;
     }
@@ -163,7 +204,7 @@ export function useAddBitacoraViewModel({
     if (isEditMode) {
       Alert.alert(
         "Bitácora actualizada",
-        "Los cambios de la bitácora se guardaron correctamente."
+        "Los cambios de la bitácora se guardaron correctamente.",
       );
     } else {
       Alert.alert("Bitácora guardada", "La bitácora se guardó correctamente.");
@@ -181,6 +222,8 @@ export function useAddBitacoraViewModel({
     showLots,
     selectedImageUri,
     errors,
+    showOptionsMenu,
+    handleToggleOptionsMenu,
     handleTitleChange,
     handleDescriptionChange,
     handleSelectLot,
@@ -188,5 +231,6 @@ export function useAddBitacoraViewModel({
     handleSelectImage,
     handleCancel,
     handleSave,
+    handleDelete,
   };
 }

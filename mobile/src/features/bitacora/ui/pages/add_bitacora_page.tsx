@@ -55,6 +55,9 @@ export function AddBitacoraPage() {
     showLots,
     selectedImageUri,
     errors,
+    showOptionsMenu,
+    handleToggleOptionsMenu,
+    handleDelete,
     handleTitleChange,
     handleDescriptionChange,
     handleSelectLot,
@@ -90,6 +93,32 @@ export function AddBitacoraPage() {
       >
         <View style={styles.container}>
           <AppHeader imageHeight={headerHeight} />
+
+          {isEditMode ? (
+            <TouchableOpacity
+              style={styles.optionsButton}
+              activeOpacity={0.75}
+              onPress={handleToggleOptionsMenu}
+            >
+              <Ionicons
+                name="ellipsis-vertical"
+                size={22}
+                color={COLORS.green}
+              />
+            </TouchableOpacity>
+          ) : null}
+
+          {showOptionsMenu ? (
+            <View style={styles.optionsMenu}>
+              <TouchableOpacity
+                style={styles.optionsMenuItem}
+                activeOpacity={0.75}
+                onPress={handleDelete}
+              >
+                <Text style={styles.deleteOptionText}>Eliminar lote</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <View
             style={[
@@ -223,7 +252,9 @@ export function AddBitacoraPage() {
                         resizeMode="cover"
                       />
 
-                      <Text style={styles.uploadTitle}>Imagen seleccionada</Text>
+                      <Text style={styles.uploadTitle}>
+                        Imagen seleccionada
+                      </Text>
 
                       <Text style={styles.uploadSubtitle}>
                         Toca para cambiarla
@@ -237,9 +268,7 @@ export function AddBitacoraPage() {
                         Toca para subir una imagen
                       </Text>
 
-                      <Text style={styles.uploadSubtitle}>
-                        JPG, PNG o JPEG
-                      </Text>
+                      <Text style={styles.uploadSubtitle}>JPG, PNG o JPEG</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -527,5 +556,44 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     marginLeft: 6,
+  },
+  optionsButton: {
+    position: "absolute",
+    top: 20,
+    right: 16,
+    zIndex: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  optionsMenu: {
+    position: "absolute",
+    top: 52,
+    right: 14,
+    zIndex: 30,
+    width: 112,
+    borderRadius: 2,
+    backgroundColor: COLORS.background,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 5,
+    overflow: "hidden",
+  },
+  optionsMenuItem: {
+    minHeight: 42,
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  deleteOptionText: {
+    fontFamily: "MaidenOrange_400Regular",
+    color: COLORS.pink,
+    fontSize: 13,
   },
 });

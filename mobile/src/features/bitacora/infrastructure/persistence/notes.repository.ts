@@ -24,4 +24,13 @@ export class NoteRepository implements INotesRepository {
     );
     return cleanData;
   }
+
+  async delete(id: string): Promise<void> {
+    const token = await this.localPreferences.retrieveData(SESSION_STORAGE!);
+    await axios.delete(`${API_URL}/notes/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
 }
