@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Platform,
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
@@ -8,13 +9,14 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import type { RootStackParamList } from "../../core/navigation/app_navigator";
 
 export type LoggedRouteName =
   | "Dashboard"
   | "Bitacoras"
-  | "Zones"
+  | "Lots"
   | "Notifications"
   | "Profile";
 
@@ -37,7 +39,7 @@ const items: NavigationItem[] = [
     icon: "document-text-outline",
   },
   {
-    route: "Zones",
+    route: "Lots",
     icon: "location-outline",
   },
   {
@@ -52,51 +54,58 @@ const items: NavigationItem[] = [
 
 export function BottomNavigationBar({ activeRoute }: BottomNavigationBarProps) {
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const isSmallPhone = height < 700;
 
-  const barHeight = isSmallPhone ? 54 : 60;
+  const baseBarHeight = isSmallPhone ? 54 : 60;
   const iconSize = width < 360 ? 24 : width < 400 ? 26 : 28;
   const buttonSize = width < 360 ? 42 : width < 400 ? 46 : 48;
   const horizontalPadding = width < 360 ? 6 : 10;
+
+  const bottomSafePadding =
+    Platform.OS === "android" ? Math.max(insets.bottom, 12) : insets.bottom;
 
   return (
     <View
       style={[
         styles.container,
         {
-          height: barHeight,
+          height: baseBarHeight + bottomSafePadding,
           paddingHorizontal: horizontalPadding,
+          paddingBottom: bottomSafePadding,
         },
       ]}
     >
-      {items.map((item) => {
-        const isActive = item.route === activeRoute;
+      <View style={styles.itemsContainer}>
+        {items.map((item) => {
+          const isActive = item.route === activeRoute;
 
-        return (
-          <TouchableOpacity
-            key={item.route}
-            style={[
-              styles.iconButton,
-              {
-                width: buttonSize,
-                height: buttonSize,
-              },
-            ]}
-            activeOpacity={0.7}
-            onPress={() => navigation.navigate(item.route)}
-          >
-            <Ionicons
-              name={item.icon}
-              size={iconSize}
-              color={isActive ? COLORS.green : COLORS.green}
-            />
-          </TouchableOpacity>
-        );
-      })}
+          return (
+            <TouchableOpacity
+              key={item.route}
+              style={[
+                styles.iconButton,
+                {
+                  width: buttonSize,
+                  height: buttonSize,
+                },
+              ]}
+              activeOpacity={0.7}
+              onPress={() => {
+                if (!isActive) {
+                  navigation.navigate(item.route);
+                }
+              }}
+            >
+              <Ionicons name={item.icon} size={iconSize} color={COLORS.green} />
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -112,6 +121,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     borderTopWidth: 1,
     borderTopColor: "rgba(93, 123, 61, 0.18)",
+  },
+  itemsContainer: {
+    flex: 1,
+    width: "100%",
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
