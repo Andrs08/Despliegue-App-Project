@@ -38,6 +38,25 @@ export function BitacorasPage() {
   const itemHeight = isSmallPhone ? 74 : 82;
   const bitacoraTitleFontSize = width < 360 ? 20 : 22;
 
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return "S/F";
+
+    try {
+      const date = new Date(dateString);
+
+      // Si por alguna razón el string no es una fecha válida, devolvemos el string original
+      if (isNaN(date.getTime())) return dateString;
+
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0"); // Los meses en JS van de 0 a 11
+      const year = date.getFullYear();
+
+      return `${day}-${month}-${year}`;
+    } catch (error) {
+      return dateString;
+    }
+  };
+
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -276,7 +295,7 @@ export function BitacorasPage() {
                       </Text>
 
                       <Text style={styles.bitacoraMeta}>
-                        {item.lot} · {item.createdAt}
+                        {item.lot} · {formatDate(item.createdAt)}
                       </Text>
                     </TouchableOpacity>
                   ))
