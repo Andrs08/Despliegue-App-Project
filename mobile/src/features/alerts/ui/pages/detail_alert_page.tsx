@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
-  LayoutChangeEvent,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
-import Svg, { G, Path } from "react-native-svg";
+import Svg, { G, Path, Circle } from "react-native-svg";
 import { Ionicons } from "@expo/vector-icons";
 import { useFonts } from "expo-font";
 import { MaidenOrange_400Regular } from "@expo-google-fonts/maiden-orange";
@@ -31,11 +31,20 @@ const COLORS = {
   green: "#5D7B3D",
   background: "#FFFFF1",
   gray: "#959595",
-  pink: "#E4568B",
-  blue: "#4A7DBA",
-  yellow: "#F6C94D",
-  softPink: "#FDE7EC",
-  softBlue: "#E8F1FB",
+  // Severity colors
+  critical: "#E4568B",   // ALTO - Alertas críticas
+  warning: "#F6C94D",    // MEDIO - Alertas preventivas
+  info: "#5D7B3D",       // BAJO - Alertas informativas
+  resolved: "#959595",   // Resueltas - gris
+  // Soft backgrounds
+  softCritical: "#FDE7EC",
+  softWarning: "#FEF8E3",
+  softInfo: "#EBF1E5",
+  softResolved: "#F0F0F0",
+  // Filter chip colors
+  filterAll: "#5D7B3D",
+  filterActive: "#E4568B",
+  filterResolved: "#959595",
 };
 
 type DetailAlertRouteProp = RouteProp<RootStackParamList, "DetailAlert">;
@@ -43,18 +52,42 @@ type DetailAlertRouteProp = RouteProp<RootStackParamList, "DetailAlert">;
 type ChartSegment = {
   key: string;
   label: string;
+  count: number;
   value: number;
   color: string;
 };
 
 function getFilterColor(filter: DetailAlertFilter): string {
   const colors: Record<DetailAlertFilter, string> = {
-    Todas: COLORS.green,
-    "Alertas activas": COLORS.pink,
-    "Alertas resueltas": COLORS.blue,
+    Todas: COLORS.filterAll,
+    "Alertas activas": COLORS.filterActive,
+    "Alertas resueltas": COLORS.filterResolved,
   };
-
   return colors[filter];
+}
+
+/** Returns dot color based on severity and resolved status */
+function getAlertColors(severity: string, isResolved: boolean): {
+  dot: string;
+  background: string;
+  text: string;
+} {
+  if (isResolved) {
+    return {
+      dot: COLORS.resolved,
+      background: COLORS.softResolved,
+      text: COLORS.resolved,
+    };
+  }
+  switch (severity) {
+    case "Crítica":
+      return { dot: COLORS.critical, background: COLORS.softCritical, text: COLORS.critical };
+    case "Preventiva":
+      return { dot: COLORS.warning, background: COLORS.softWarning, text: "#C49A2A" };
+    case "Informativa":
+    default:
+      return { dot: COLORS.info, background: COLORS.softInfo, text: COLORS.info };
+  }
 }
 
 function polarToCartesian(
@@ -64,7 +97,6 @@ function polarToCartesian(
   angleInDegrees: number
 ) {
   const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
-
   return {
     x: centerX + radius * Math.cos(angleInRadians),
     y: centerY + radius * Math.sin(angleInRadians),
@@ -78,10 +110,13 @@ function describeArc(
   startAngle: number,
   endAngle: number
 ) {
+
+  if (Math.abs(endAngle - startAngle) >= 359.9) {
+    return `M ${x} ${y - radius} A ${radius} ${radius} 0 1 0 ${x} ${y + radius} A ${radius} ${radius} 0 1 0 ${x} ${y - radius} Z`;
+  }
   const start = polarToCartesian(x, y, radius, endAngle);
   const end = polarToCartesian(x, y, radius, startAngle);
   const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
   return `M ${x} ${y} L ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`;
 }
 
@@ -92,37 +127,47 @@ function ResponsivePieChart({
   data: ChartSegment[];
   size: number;
 }) {
-  const total = data.reduce((accumulator, item) => accumulator + item.value, 0);
+  const total = data.reduce((acc, item) => acc + item.value, 0);
   const radius = size / 2 - 6;
   const center = size / 2;
 
   let startAngle = 0;
 
+  // Single segment: render a full circle
+  const isSingleSegment = data.length === 1;
+
   return (
     <View style={styles.chartContent}>
       <Svg width={size} height={size}>
         <G>
-          {data.map((segment) => {
-            const angle = (segment.value / total) * 360;
-            const path = describeArc(
-              center,
-              center,
-              radius,
-              startAngle,
-              startAngle + angle
-            );
-
-            const currentStart = startAngle;
-            startAngle += angle;
-
-            return (
-              <Path
-                key={`${segment.key}-${currentStart}`}
-                d={path}
-                fill={segment.color}
-              />
-            );
-          })}
+          {isSingleSegment ? (
+            <Circle
+              cx={center}
+              cy={center}
+              r={radius}
+              fill={data[0].color}
+            />
+          ) : (
+            data.map((segment) => {
+              const angle = (segment.value / total) * 360;
+              const path = describeArc(
+                center,
+                center,
+                radius,
+                startAngle,
+                startAngle + angle
+              );
+              const currentStart = startAngle;
+              startAngle += angle;
+              return (
+                <Path
+                  key={`${segment.key}-${currentStart}`}
+                  d={path}
+                  fill={segment.color}
+                />
+              );
+            })
+          )}
         </G>
       </Svg>
 
@@ -130,17 +175,13 @@ function ResponsivePieChart({
         {data.map((segment) => (
           <View key={segment.key} style={styles.legendItem}>
             <View
-              style={[
-                styles.legendDot,
-                {
-                  backgroundColor: segment.color,
-                },
-              ]}
+              style={[styles.legendDot, { backgroundColor: segment.color }]}
             />
-
             <View style={styles.legendTextBox}>
               <Text style={styles.legendLabel}>{segment.label}</Text>
-              <Text style={styles.legendValue}>{segment.value.toFixed(1)}%</Text>
+              <Text style={[styles.legendValue, { color: segment.color }]}>
+                {segment.count}{' '} ({segment.value.toFixed(1)}%)
+              </Text>
             </View>
           </View>
         ))}
@@ -169,11 +210,14 @@ export function DetailAlertPage() {
     filteredAlerts,
     chartData,
     showOptionsMenu,
+    isLoading,
+    error,
     handleSelectFilter,
     handleToggleOptionsMenu,
     handleResolveActiveAlerts,
   } = useDetailAlertViewModel({
     lotId: route.params.lotId,
+    lotName: route.params.lotName,
     onNotFound: () => {
       navigation.navigate("Notifications");
     },
@@ -188,9 +232,11 @@ export function DetailAlertPage() {
     return Math.max(150, Math.min(availableWidth * 0.64, 210));
   }, [horizontalPadding, width]);
 
-  if (!fontsLoaded || !lot) {
+  if (!fontsLoaded) {
     return null;
   }
+
+  const showFilters = filters.length > 1;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -206,11 +252,7 @@ export function DetailAlertPage() {
             activeOpacity={0.75}
             onPress={handleToggleOptionsMenu}
           >
-            <Ionicons
-              name="ellipsis-vertical"
-              size={20}
-              color={COLORS.green}
-            />
+            <Ionicons name="ellipsis-vertical" size={20} color={COLORS.green} />
           </TouchableOpacity>
 
           {showOptionsMenu ? (
@@ -243,10 +285,7 @@ export function DetailAlertPage() {
               <Text
                 style={[
                   styles.title,
-                  {
-                    fontSize: titleFontSize,
-                    lineHeight: titleFontSize + 4,
-                  },
+                  { fontSize: titleFontSize, lineHeight: titleFontSize + 4 },
                 ]}
               >
                 {lot.lotName}
@@ -256,105 +295,115 @@ export function DetailAlertPage() {
                 Información actual de tus alertas en el lote
               </Text>
 
-              <View style={styles.chartCard}>
-                <ResponsivePieChart data={chartData} size={chartSize} />
-              </View>
+              {isLoading ? (
+                <View style={styles.emptyState}>
+                  <ActivityIndicator size="small" color={COLORS.green} />
+                </View>
+              ) : error ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>{error}</Text>
+                </View>
+              ) : (
+                <>
+                  {chartData.length > 0 && (
+                    <View style={styles.chartCard}>
+                      <ResponsivePieChart data={chartData} size={chartSize} />
+                    </View>
+                  )}
 
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.filtersContainer}
-                style={styles.filtersScroll}
-              >
-                {filters.map((filter) => {
-                  const isSelected = selectedFilter === filter;
-                  const chipColor = getFilterColor(filter);
-
-                  return (
-                    <TouchableOpacity
-                      key={filter}
-                      style={[
-                        styles.filterChip,
-                        {
-                          borderColor: chipColor,
-                          backgroundColor: isSelected
-                            ? chipColor
-                            : COLORS.background,
-                        },
-                      ]}
-                      activeOpacity={0.8}
-                      onPress={() => handleSelectFilter(filter)}
+                  {showFilters && (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.filtersContainer}
+                      style={styles.filtersScroll}
                     >
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          {
-                            color: isSelected ? COLORS.background : chipColor,
-                          },
-                        ]}
-                      >
-                        {filter}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+                      {filters.map((filter) => {
+                        const isSelected = selectedFilter === filter;
+                        const chipColor = getFilterColor(filter);
 
-              <View style={styles.listContainer}>
-                {filteredAlerts.map((alertItem) => {
-                  const isActive = alertItem.status === "Activa";
+                        return (
+                          <TouchableOpacity
+                            key={filter}
+                            style={[
+                              styles.filterChip,
+                              {
+                                borderColor: chipColor,
+                                backgroundColor: isSelected
+                                  ? chipColor
+                                  : COLORS.background,
+                              },
+                            ]}
+                            activeOpacity={0.8}
+                            onPress={() => handleSelectFilter(filter)}
+                          >
+                            <Text
+                              style={[
+                                styles.filterChipText,
+                                {
+                                  color: isSelected
+                                    ? COLORS.background
+                                    : chipColor,
+                                },
+                              ]}
+                            >
+                              {filter}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  )}
 
-                  return (
-                    <View
-                      key={alertItem.id}
-                      style={[
-                        styles.alertCard,
-                        {
-                          backgroundColor: isActive
-                            ? COLORS.softPink
-                            : COLORS.softBlue,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.alertDot,
-                          {
-                            backgroundColor: isActive
-                              ? COLORS.pink
-                              : COLORS.blue,
-                          },
-                        ]}
-                      />
+                  <View style={styles.listContainer}>
+                    {filteredAlerts.map((alertItem) => {
+                      const isResolved = alertItem.status === "Resuelta";
+                      const alertColors = getAlertColors(
+                        alertItem.severity,
+                        isResolved
+                      );
 
-                      <View style={styles.alertTextBox}>
-                        <Text
+                      return (
+                        <View
+                          key={alertItem.id}
                           style={[
-                            styles.alertTitle,
-                            {
-                              color: isActive ? COLORS.pink : COLORS.blue,
-                            },
+                            styles.alertCard,
+                            { backgroundColor: alertColors.background },
                           ]}
                         >
-                          {alertItem.title}
-                        </Text>
+                          <View
+                            style={[
+                              styles.alertDot,
+                              { backgroundColor: alertColors.dot },
+                            ]}
+                          />
+                          <View style={styles.alertTextBox}>
+                            <Text
+                              style={[
+                                styles.alertTitle,
+                                { color: alertColors.text },
+                              ]}
+                            >
+                              {alertItem.title}
+                            </Text>
+                            <Text style={styles.alertDate}>
+                              {alertItem.timeAgo}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
 
-                        <Text style={styles.alertDate}>
-                          {alertItem.timeAgo}
+                    {filteredAlerts.length === 0 ? (
+                      <View style={styles.emptyState}>
+                        <Text style={styles.emptyStateText}>
+                          No hay alertas para este filtro.
                         </Text>
                       </View>
-                    </View>
-                  );
-                })}
-
-                {filteredAlerts.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>
-                      No hay alertas para este filtro.
-                    </Text>
+                    ) : null}
                   </View>
-                ) : null}
-              </View>
+                </>
+              )}
             </ScrollView>
           </View>
 
@@ -398,10 +447,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.16,
     shadowRadius: 4,
     elevation: 4,
@@ -467,17 +513,19 @@ const styles = StyleSheet.create({
   legendTextBox: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    justifyContent: "space-between",
   },
   legendLabel: {
     fontFamily: "MaidenOrange_400Regular",
     color: COLORS.green,
     fontSize: 13,
-    marginRight: 6,
+    flex: 1,
   },
   legendValue: {
     fontFamily: "MaidenOrange_400Regular",
-    color: COLORS.gray,
     fontSize: 12,
+    marginLeft: 6,
   },
   filtersScroll: {
     marginBottom: 12,

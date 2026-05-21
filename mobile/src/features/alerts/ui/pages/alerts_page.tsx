@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -51,12 +52,16 @@ export function AlertsPage() {
     summaryCards,
     lots,
     searchText,
+    isLoading,
+    error,
     handleSearchChange,
     handleOpenDetail,
   } = useAlertsViewModel({
     onOpenDetail: (lotId) => {
+      const lot = lots.find((l) => l.id === lotId);
       navigation.navigate("DetailAlert", {
         lotId,
+        lotName: lot?.lotName ?? "",
       });
     },
   });
@@ -160,43 +165,53 @@ export function AlertsPage() {
                 />
               </View>
 
-              <View style={styles.listContainer}>
-                {lots.map((lot) => (
-                  <TouchableOpacity
-                    key={lot.id}
-                    style={styles.lotItem}
-                    activeOpacity={0.85}
-                    onPress={() => handleOpenDetail(lot.id)}
-                  >
-                    <View
-                      style={[
-                        styles.lotDot,
-                        {
-                          backgroundColor: getAlertLotDotColor(lot),
-                        },
-                      ]}
-                    />
+              {isLoading ? (
+                <View style={styles.emptyState}>
+                  <ActivityIndicator size="small" color={COLORS.green} />
+                </View>
+              ) : error ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>{error}</Text>
+                </View>
+              ) : (
+                <View style={styles.listContainer}>
+                  {lots.map((lot) => (
+                    <TouchableOpacity
+                      key={lot.id}
+                      style={styles.lotItem}
+                      activeOpacity={0.85}
+                      onPress={() => handleOpenDetail(lot.id)}
+                    >
+                      <View
+                        style={[
+                          styles.lotDot,
+                          {
+                            backgroundColor: getAlertLotDotColor(lot),
+                          },
+                        ]}
+                      />
 
-                    <View style={styles.lotInfo}>
-                      <Text style={styles.lotName}>{lot.lotName}</Text>
+                      <View style={styles.lotInfo}>
+                        <Text style={styles.lotName}>{lot.lotName}</Text>
+                      </View>
+
+                      <Ionicons
+                        name="arrow-forward"
+                        size={18}
+                        color={COLORS.green}
+                      />
+                    </TouchableOpacity>
+                  ))}
+
+                  {lots.length === 0 ? (
+                    <View style={styles.emptyState}>
+                      <Text style={styles.emptyStateText}>
+                        No hay lotes que coincidan con tu búsqueda.
+                      </Text>
                     </View>
-
-                    <Ionicons
-                      name="arrow-forward"
-                      size={18}
-                      color={COLORS.green}
-                    />
-                  </TouchableOpacity>
-                ))}
-
-                {lots.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyStateText}>
-                      No hay lotes que coincidan con tu búsqueda.
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
+                  ) : null}
+                </View>
+              )}
             </ScrollView>
           </View>
 

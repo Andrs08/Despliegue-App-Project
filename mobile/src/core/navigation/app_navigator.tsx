@@ -81,24 +81,24 @@ export type RootStackParamList = {
   Bitacoras: undefined;
 
   AddBitacora:
-    | {
-        mode: "create";
-      }
-    | {
-        mode: "edit";
-        bitacora: BitacoraRouteItem;
-      };
+  | {
+    mode: "create";
+  }
+  | {
+    mode: "edit";
+    bitacora: BitacoraRouteItem;
+  };
 
   Lots: undefined;
 
   LoteForm:
-    | {
-        mode: "create";
-      }
-    | {
-        mode: "edit";
-        loteId: string;
-      };
+  | {
+    mode: "create";
+  }
+  | {
+    mode: "edit";
+    loteId: string;
+  };
 
   DetailLote: {
     loteId: string;
@@ -110,9 +110,7 @@ export type RootStackParamList = {
 
   Notifications: undefined;
 
-  DetailAlert: {
-    lotId: number;
-  };
+  DetailAlert: { lotId: string; lotName: string };
 
   Profile: undefined;
 
