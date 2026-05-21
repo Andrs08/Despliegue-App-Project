@@ -27,6 +27,7 @@ import type {
 import { AppHeader } from "../../../../shared/ui/app_header";
 import { BottomNavigationBar } from "../../../../shared/ui/bottom_navigation_bar";
 import { useLotesViewModel } from "../viewmodels/lotes_viewmodel";
+import { Lote } from "../../domain/entities/lot.entity";
 
 export function LotesPage() {
   const { width, height } = useWindowDimensions();
@@ -55,7 +56,7 @@ export function LotesPage() {
         mode: "create",
       });
     },
-    onOpenLote: (lote: LoteRouteItem) => {
+    onOpenLote: (lote: Lote) => {
       navigation.navigate("DetailLote", {
         loteId: lote.id,
       });

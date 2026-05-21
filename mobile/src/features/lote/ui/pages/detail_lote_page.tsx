@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -42,6 +43,9 @@ export function DetailLotePage() {
 
   const {
     lote,
+    loading,
+    error,
+    produccionEstimada,
     stages,
     alerts,
     showOptionsMenu,
@@ -53,14 +57,14 @@ export function DetailLotePage() {
     handleDeleteLote,
     handleRegisterData,
   } = useDetailLoteViewModel({
-    loteId: route.params.loteId,
-    onEditLote: (loteId: number) => {
+    loteId: route.params.loteId,        
+    onEditLote: (loteId: string) => {
       navigation.navigate("LoteForm", {
         mode: "edit",
         loteId,
       });
     },
-    onRegisterData: (loteId: number) => {
+    onRegisterData: (loteId: string) => {
       navigation.navigate("RegisterLoteData", {
         loteId,
       });
@@ -80,12 +84,41 @@ export function DetailLotePage() {
     return null;
   }
 
+  if (loading && !lote) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.notFoundContainer}>
+          <ActivityIndicator size="large" color={COLORS.green} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error && !lote) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.notFoundContainer}>
+          <Text style={styles.notFoundTitle}>Error al cargar el lote</Text>
+          <Text style={{ color: COLORS.gray, marginBottom: 16, textAlign: "center" }}>
+            {error}
+          </Text>
+          <TouchableOpacity
+            style={styles.saveButton}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate("Lots")}
+          >
+            <Text style={styles.saveButtonText}>Volver a lotes</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (!lote) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.notFoundContainer}>
           <Text style={styles.notFoundTitle}>Lote no encontrado</Text>
-
           <TouchableOpacity
             style={styles.saveButton}
             activeOpacity={0.8}
@@ -166,6 +199,7 @@ export function DetailLotePage() {
 
               <Text style={styles.subtitle}>Información actual de tu lote</Text>
 
+              {/* ── Métricas ── */}
               <View style={styles.metricsRow}>
                 <View style={styles.productionCard}>
                   <Text
@@ -177,7 +211,7 @@ export function DetailLotePage() {
                       },
                     ]}
                   >
-                    {lote.produccionEstimada}
+                    {produccionEstimada}
                   </Text>
 
                   <Text style={styles.productionMetricLabel}>
@@ -204,6 +238,7 @@ export function DetailLotePage() {
                 </View>
               </View>
 
+              {/* ── Avance del lote ── */}
               <View style={styles.progressCard}>
                 <Text style={styles.progressTitle}>Avance del lote</Text>
 
@@ -288,6 +323,7 @@ export function DetailLotePage() {
                 </View>
               </View>
 
+              {/* ── Alertas activas ── */}
               <View style={styles.alertsTitleRow}>
                 <Ionicons
                   name="warning-outline"
@@ -297,6 +333,19 @@ export function DetailLotePage() {
 
                 <Text style={styles.alertsTitle}>Alertas activas</Text>
               </View>
+
+              {alerts.length === 0 ? (
+                <Text
+                  style={{
+                    fontFamily: "MaidenOrange_400Regular",
+                    color: COLORS.gray,
+                    fontSize: 13,
+                    marginBottom: 12,
+                  }}
+                >
+                  Sin alertas activas
+                </Text>
+              ) : null}
 
               {alerts.map((alert) => (
                 <View key={alert.id} style={styles.alertCard}>
@@ -309,6 +358,7 @@ export function DetailLotePage() {
                 </View>
               ))}
 
+              {/* ── Etapa actual ── */}
               <View style={styles.currentStageCard}>
                 <Text style={styles.currentStageTitle}>Etapa actual</Text>
                 <Text style={styles.currentStageText}>{currentStageLabel}</Text>
@@ -393,10 +443,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: COLORS.background,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,
     shadowRadius: 4,
     elevation: 5,
@@ -491,10 +538,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     marginBottom: 18,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.16,
     shadowRadius: 4,
     elevation: 4,

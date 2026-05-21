@@ -2,16 +2,25 @@ import { useCallback, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
-import type {
-  EtapaLote,
-  LoteRouteItem,
-} from "../../../../core/navigation/app_navigator";
-import {
-  deleteLote,
-  getEtapaIndex,
-  getEtapaLabel,
-  getLoteById,
-} from "../../infrastructure/persistence/lote_mock_repository";
+import type { EtapaLote } from "../../domain/entities/lot.entity";
+import type { Lote } from "../../domain/entities/lot.entity";
+import type { LoteAlert } from "../../domain/entities/alert.entity";
+
+import { GetLoteUseCase } from "../../application/use-cases/get-lot.use-case";
+import { DeleteLoteUseCase } from "../../application/use-cases/delete-lots.use-case";
+import { GetLoteAlertsUseCase } from "../../application/use-cases/get-lot-alerts.use-case";
+
+import { ApiLoteRepository } from "../../infrastructure/persistence/api_lot.repository";
+import { ApiAlertRepository } from "../../infrastructure/persistence/api_alert.repository";
+import { LocalPreferencesAsyncStorage } from "../../../../core/LocalPreferencesAsyncStorage";
+
+const storage = LocalPreferencesAsyncStorage.getInstance();
+const loteRepo = new ApiLoteRepository(storage);
+const alertRepo = new ApiAlertRepository(storage);
+
+const getLoteUseCase = new GetLoteUseCase(loteRepo);
+const deleteLoteUseCase = new DeleteLoteUseCase(loteRepo);
+const getLoteAlertsUseCase = new GetLoteAlertsUseCase(alertRepo);
 
 export type LoteStageProgressItem = {
   key: EtapaLote;
@@ -20,14 +29,34 @@ export type LoteStageProgressItem = {
   icon: string;
 };
 
-type UseDetailLoteViewModelParams = {
-  loteId: number;
-  onEditLote: (loteId: number) => void;
-  onRegisterData: (loteId: number) => void;
-  onDeleted: () => void;
+export const ID_TO_ETAPA: Record<number, EtapaLote> = {
+  1: "preparacion_suelo",
+  2: "siembra",
+  3: "desarrollo_vegetativo",
+  4: "floracion",
+  5: "fructificacion",
+  6: "cosecha",
 };
 
-const LOTE_STAGES: LoteStageProgressItem[] = [
+const ETAPA_ORDER: EtapaLote[] = [
+  "preparacion_suelo",
+  "siembra",
+  "desarrollo_vegetativo",
+  "floracion",
+  "fructificacion",
+  "cosecha",
+];
+
+const ETAPA_LABELS: Record<EtapaLote, string> = {
+  preparacion_suelo: "Preparación del suelo",
+  siembra: "Siembra",
+  desarrollo_vegetativo: "Desarrollo vegetativo",
+  floracion: "Floración",
+  fructificacion: "Fructificación",
+  cosecha: "Cosecha",
+};
+
+export const LOTE_STAGES: LoteStageProgressItem[] = [
   {
     key: "preparacion_suelo",
     label: "Preparación del suelo",
@@ -66,32 +95,53 @@ const LOTE_STAGES: LoteStageProgressItem[] = [
   },
 ];
 
-const MOCK_ALERTS = [
-  {
-    id: 1,
-    title: "Falta de riego en algunas zonas",
-    timeAgo: "Hace 2 días",
-  },
-  {
-    id: 2,
-    title: "Falta de riego en algunas zonas",
-    timeAgo: "Hace 2 días",
-  },
-];
+// Tipo de alerta que la página consume (presentación)
+export type AlertDisplayItem = {
+  id: string;
+  title: string; // mensaje de la alerta
+  timeAgo: string; // texto relativo calculado del createdAt
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calculateDaysSinceStart(fechaInicio: string): number {
   const startDate = new Date(fechaInicio);
-  const currentDate = new Date();
-
-  if (Number.isNaN(startDate.getTime())) {
-    return 0;
-  }
-
-  const diffInMilliseconds = currentDate.getTime() - startDate.getTime();
-  const diffInDays = Math.floor(diffInMilliseconds / (1000 * 60 * 60 * 24));
-
-  return Math.max(diffInDays, 0);
+  if (Number.isNaN(startDate.getTime())) return 0;
+  const diff = new Date().getTime() - startDate.getTime();
+  return Math.max(Math.floor(diff / (1000 * 60 * 60 * 24)), 0);
 }
+
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffDays >= 1) return `Hace ${diffDays} día${diffDays > 1 ? "s" : ""}`;
+  if (diffHours >= 1)
+    return `Hace ${diffHours} hora${diffHours > 1 ? "s" : ""}`;
+  if (diffMinutes >= 1)
+    return `Hace ${diffMinutes} minuto${diffMinutes > 1 ? "s" : ""}`;
+  return "Hace un momento";
+}
+
+function toDisplayAlert(alert: LoteAlert): AlertDisplayItem {
+  return {
+    id: alert.id,
+    title: alert.mensaje,
+    timeAgo: formatTimeAgo(alert.createdAt),
+  };
+}
+
+// ─── ViewModel ────────────────────────────────────────────────────────────────
+
+type UseDetailLoteViewModelParams = {
+  loteId: string; // ahora es string (UUID del backend)
+  onEditLote: (loteId: string) => void;
+  onRegisterData: (loteId: string) => void;
+  onDeleted: () => void;
+};
 
 export function useDetailLoteViewModel({
   loteId,
@@ -99,48 +149,71 @@ export function useDetailLoteViewModel({
   onRegisterData,
   onDeleted,
 }: UseDetailLoteViewModelParams) {
-  const [lote, setLote] = useState<LoteRouteItem | null>(null);
+  const [lote, setLote] = useState<Lote | null>(null);
+  const [alerts, setAlerts] = useState<AlertDisplayItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [selectedCarouselStage, setSelectedCarouselStage] =
-    useState<EtapaLote | null>(null);
 
+  // ── Carga inicial al entrar a la pantalla ──────────────────────────────────
   useFocusEffect(
     useCallback(() => {
-      const currentLote = getLoteById(loteId);
+      let cancelled = false;
 
-      setLote(currentLote);
+      const load = async () => {
+        setLoading(true);
+        setError(null);
 
-      if (currentLote) {
-        setSelectedCarouselStage(currentLote.etapa);
-      }
-    }, [loteId])
+        try {
+          // Las dos llamadas en paralelo
+          const [fetchedLote, fetchedAlerts] = await Promise.all([
+            getLoteUseCase.execute(loteId),
+            getLoteAlertsUseCase.execute(loteId),
+          ]);
+
+          if (cancelled) return;
+
+          setLote(fetchedLote);
+          setAlerts(fetchedAlerts.map(toDisplayAlert));
+        } catch (e: any) {
+          if (!cancelled) {
+            setError(e?.message ?? "Error cargando el lote");
+          }
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      };
+
+      load();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [loteId]),
   );
 
+  // ── Derivados de presentación ──────────────────────────────────────────────
+
+  const currentEtapa: EtapaLote | null = lote
+    ? (ID_TO_ETAPA[lote.etapaActualId] ?? null)
+    : null;
+
   const currentStageIndex = useMemo(() => {
-    if (!lote) {
-      return -1;
-    }
+    if (!currentEtapa) return -1;
+    return ETAPA_ORDER.indexOf(currentEtapa);
+  }, [currentEtapa]);
 
-    return getEtapaIndex(lote.etapa);
-  }, [lote]);
+  const currentStageLabel = currentEtapa ? ETAPA_LABELS[currentEtapa] : "";
 
-  const currentStageLabel = lote ? getEtapaLabel(lote.etapa) : "";
-
-  const selectedCarouselStageData = useMemo(() => {
-    return (
-      LOTE_STAGES.find((stage) => stage.key === selectedCarouselStage) ??
-      LOTE_STAGES[0]
-    );
-  }, [selectedCarouselStage]);
+  // Producción estimada: numero_plantas * 25
+  const produccionEstimada = lote ? lote.numeroPlantas * 25 : 0;
 
   const daysSinceStart = lote ? calculateDaysSinceStart(lote.fechaInicio) : 0;
 
-  const handleToggleOptionsMenu = () => {
-    setShowOptionsMenu((currentValue) => !currentValue);
-  };
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
-  const handleSelectCarouselStage = (stage: EtapaLote) => {
-    setSelectedCarouselStage(stage);
+  const handleToggleOptionsMenu = () => {
+    setShowOptionsMenu((v) => !v);
   };
 
   const handleEditLote = () => {
@@ -159,34 +232,35 @@ export function useDetailLoteViewModel({
       "Eliminar lote",
       "¿Estás seguro de que deseas eliminar este lote?",
       [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
+        { text: "Cancelar", style: "cancel" },
         {
           text: "Eliminar",
           style: "destructive",
-          onPress: () => {
-            deleteLote(loteId);
-            onDeleted();
+          onPress: async () => {
+            try {
+              await deleteLoteUseCase.execute(loteId);
+              onDeleted();
+            } catch (e: any) {
+              Alert.alert("Error", e?.message ?? "No se pudo eliminar el lote");
+            }
           },
         },
-      ]
+      ],
     );
   };
 
   return {
     lote,
+    loading,
+    error,
+    produccionEstimada,
     stages: LOTE_STAGES,
-    alerts: MOCK_ALERTS,
+    alerts,
     showOptionsMenu,
     currentStageIndex,
     currentStageLabel,
-    selectedCarouselStage,
-    selectedCarouselStageData,
     daysSinceStart,
     handleToggleOptionsMenu,
-    handleSelectCarouselStage,
     handleEditLote,
     handleDeleteLote,
     handleRegisterData,

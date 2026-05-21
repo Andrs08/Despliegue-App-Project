@@ -50,7 +50,7 @@ export type EtapaLote =
 export type EstadoLote = "Sano" | "Observación" | "Riesgo";
 
 export type LoteRouteItem = {
-  id: number;
+  id: string;
   nombre: string;
   hectareas: number;
   temperaturaMinima: number;
@@ -96,15 +96,15 @@ export type RootStackParamList = {
       }
     | {
         mode: "edit";
-        loteId: number;
+        loteId: string;
       };
 
   DetailLote: {
-    loteId: number;
+    loteId: string;
   };
 
   RegisterLoteData: {
-    loteId: number;
+    loteId: string;
   };
 
   Notifications: undefined;

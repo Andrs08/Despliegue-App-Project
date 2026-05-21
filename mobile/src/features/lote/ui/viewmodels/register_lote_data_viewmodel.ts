@@ -6,7 +6,7 @@ import type {
   EtapaLote,
   LoteRouteItem,
 } from "../../../../core/navigation/app_navigator";
-import { getLoteById } from "../../infrastructure/persistence/lote_mock_repository";
+import { getLoteById } from "../../infrastructure/persistence/lote";
 
 export type RegistroCampo = {
   key: string;
@@ -49,7 +49,7 @@ export type RegistroLotePayload = {
 };
 
 type UseRegisterLoteDataViewModelParams = {
-  loteId: number;
+  loteId: string;
   onCancel: () => void;
   onSaved: () => void;
   onNotFound: () => void;

@@ -37,6 +37,7 @@ export class PrismaLoteRepository implements LoteRepository {
   async findById(id: string): Promise<Lot | null> {
     const lote = await this.prisma.lote.findUnique({
       where: { id },
+      include: { alerta: true },
     });
 
     if (!lote) {
@@ -141,6 +142,22 @@ export class PrismaLoteRepository implements LoteRepository {
   }
 
   private toDomain(lote: any): Lot {
+    // Calcula el estado a partir de las alertas activas (igual que findWithFilters)
+    const alertasActivas: any[] =
+      lote.alerta?.filter((a: any) => !a.resuelta) ?? [];
+    let estado: string;
+    const tieneAlto = alertasActivas.some(
+      (a) => a.nivel === 'ALTO' || a.nivel === 'MEDIO',
+    );
+    const tieneBajo = alertasActivas.some((a) => a.nivel === 'BAJO');
+    if (tieneAlto) {
+      estado = 'Riesgo';
+    } else if (tieneBajo) {
+      estado = 'Observación';
+    } else {
+      estado = 'Sano';
+    }
+
     return new Lot(
       lote.id,
       lote.usuario_id,
@@ -148,9 +165,10 @@ export class PrismaLoteRepository implements LoteRepository {
       lote.hectareas,
       lote.temperatura_min,
       lote.temperatura_max,
-      lote.etapa_actual,
+      lote.etapa_actual_id,
       lote.fecha_inicio,
       lote.numero_plantas,
+      estado,
     );
   }
 }

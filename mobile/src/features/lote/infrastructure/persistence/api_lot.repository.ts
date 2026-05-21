@@ -24,25 +24,14 @@ type LoteApiResponse = {
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const SESSION_TOKEN = process.env.EXPO_PUBLIC_LOCAL_TOKEN;
 
-// ─── Mapping backend → dominio ────────────────────────────────────────────────
-
-/**
- * Convierte la respuesta del backend al dominio del frontend.
- *
- * El backend calcula el estado a partir de las alertas en `findWithFilters`.
- * Para `findAllByUser` no devuelve estado, así que lo inferimos como "Sano"
- * por defecto; si el backend lo incluye usamos ese valor.
- */
 function toDomain(raw: LoteApiResponse): Lote {
   const { Lote } = require("../../domain/entities/lot.entity");
 
   const estado: EstadoLote = raw.estado ?? "Sano";
-
   const fechaInicio =
     typeof raw.fecha_inicio === "string"
-      ? raw.fecha_inicio.split("T")[0] // "2026-02-21T00:00:00Z" → "2026-02-21"
+      ? raw.fecha_inicio.split("T")[0]
       : new Date(raw.fecha_inicio).toISOString().split("T")[0];
-
   return new Lote(
     raw.id,
     raw.usuario_id,
@@ -57,8 +46,6 @@ function toDomain(raw: LoteApiResponse): Lote {
   );
 }
 
-// ─── Repositorio ──────────────────────────────────────────────────────────────
-
 export class ApiLoteRepository implements LoteRepository {
   constructor(private storage: ILocalPreferences) {}
 
@@ -69,37 +56,35 @@ export class ApiLoteRepository implements LoteRepository {
   }
 
   private async apiFetch<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const token = await this.getAuthToken();
+    path: string,
+    options: RequestInit = {},
+  ): Promise<T> {
+    const token = await this.getAuthToken();
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options.headers ?? {}),
-    },
-  });
+    const response = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        ...(options.headers ?? {}),
+      },
+    });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`API error ${response.status} en ${path}: ${body}`);
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`API error ${response.status} en ${path}: ${body}`);
+    }
+
+    if (response.status === 204) return undefined as T;
+
+    return response.json() as Promise<T>;
   }
-
-  // 204 No Content
-  if (response.status === 204) return undefined as T;
-
-  return response.json() as Promise<T>;
-};
 
   async findAllByUser(): Promise<Lote[]> {
     const data = await this.apiFetch<LoteApiResponse[]>("/lotes");
     return data.map(toDomain);
   }
 
-  // GET /lotes/:id
   async findById(id: string): Promise<Lote | null> {
     try {
       const data = await this.apiFetch<LoteApiResponse>(`/lotes/${id}`);
@@ -109,12 +94,10 @@ export class ApiLoteRepository implements LoteRepository {
     }
   }
 
-  // GET /lotes/filter?estado=healthy&nombre=xxx
   async findWithFilters(filters: FilterLotesInput): Promise<Lote[]> {
     const params = new URLSearchParams();
 
     if (filters.estado) {
-      // Traducimos el label visual ("Sano") al enum del backend ("healthy")
       const backendStatus = ESTADO_TO_LOT_STATUS[filters.estado];
       if (backendStatus) params.set("estado", backendStatus);
     }
@@ -124,21 +107,20 @@ export class ApiLoteRepository implements LoteRepository {
     }
 
     const query = params.toString() ? `?${params.toString()}` : "";
-    const data = await this.apiFetch<LoteApiResponse[]>(`/lotes/filter${query}`);
+    const data = await this.apiFetch<LoteApiResponse[]>(
+      `/lotes/filter${query}`,
+    );
     return data.map(toDomain);
   }
 
-  // POST /lotes
   async create(input: CreateLoteInput): Promise<Lote> {
     const response = await this.apiFetch<{ lote: LoteApiResponse }>("/lotes", {
       method: "POST",
       body: JSON.stringify(input),
     });
-    // El backend devuelve { lote, alertas }
     return toDomain(response.lote ?? (response as unknown as LoteApiResponse));
   }
 
-  // PATCH /lotes/:id
   async update(id: string, input: UpdateLoteInput): Promise<Lote> {
     const data = await this.apiFetch<LoteApiResponse>(`/lotes/${id}`, {
       method: "PATCH",
@@ -147,7 +129,6 @@ export class ApiLoteRepository implements LoteRepository {
     return toDomain(data);
   }
 
-  // DELETE /lotes/:id
   async delete(id: string): Promise<void> {
     await this.apiFetch<void>(`/lotes/${id}`, { method: "DELETE" });
   }

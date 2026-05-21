@@ -1,17 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
+import type { EtapaLote } from "../../domain/entities/lot.entity";
+import { GetLoteUseCase } from "../../application/use-cases/get-lot.use-case";
+import { CreateLoteUseCase } from "../../application/use-cases/create-lot.use-case";
+import { UpdateLoteUseCase } from "../../application/use-cases/update-lot.use-case";
+import { G } from "react-native-svg";
+import { ApiLoteRepository } from "../../infrastructure/persistence/api_lot.repository";
+import { LocalPreferencesAsyncStorage } from "@/src/core/LocalPreferencesAsyncStorage";
 
-import type {
-  EtapaLote,
-  RootStackParamList,
-} from "../../../../core/navigation/app_navigator";
-import {
-  createLote,
-  getLoteById,
-  updateLote,
-} from "../../infrastructure/persistence/lote_mock_repository";
-
-type LoteFormRouteParams = RootStackParamList["LoteForm"];
+const storage = LocalPreferencesAsyncStorage.getInstance();
+const repository = new ApiLoteRepository(storage);
+const getLoteUseCase = new GetLoteUseCase(repository);
+const createLoteUseCase = new CreateLoteUseCase(repository);
+const updateLoteUseCase = new UpdateLoteUseCase(repository);
 
 export type LoteFormValues = {
   nombre: string;
@@ -22,11 +23,8 @@ export type LoteFormValues = {
   fechaInicio: string;
   numeroPlantas: string;
 };
-
 export type LoteFormErrors = Partial<Record<keyof LoteFormValues, string>>;
-
 export type CalendarMode = "days" | "months";
-
 export type CalendarDay = {
   id: string;
   day: number;
@@ -43,39 +41,32 @@ export type CalendarMonthOption = {
   isSelected: boolean;
 };
 
-type UseLoteFormViewModelParams = {
-  routeParams: LoteFormRouteParams;
-  onCancel: () => void;
-  onSaved: (loteId: number) => void;
-  onNotFound: () => void;
+export const ETAPAS_OPTIONS: { key: EtapaLote; label: string }[] = [
+  { key: "preparacion_suelo", label: "Preparación del suelo" },
+  { key: "siembra", label: "Siembra" },
+  { key: "desarrollo_vegetativo", label: "Desarrollo vegetativo" },
+  { key: "floracion", label: "Floración" },
+  { key: "fructificacion", label: "Fructificación" },
+  { key: "cosecha", label: "Cosecha" },
+];
+
+const ETAPA_TO_ID: Record<EtapaLote, number> = {
+  preparacion_suelo: 1,
+  siembra: 2,
+  desarrollo_vegetativo: 3,
+  floracion: 4,
+  fructificacion: 5,
+  cosecha: 6,
 };
 
-export const ETAPAS_OPTIONS: { key: EtapaLote; label: string }[] = [
-  {
-    key: "preparacion_suelo",
-    label: "Preparación del suelo",
-  },
-  {
-    key: "siembra",
-    label: "Siembra",
-  },
-  {
-    key: "desarrollo_vegetativo",
-    label: "Desarrollo vegetativo",
-  },
-  {
-    key: "floracion",
-    label: "Floración",
-  },
-  {
-    key: "fructificacion",
-    label: "Fructificación",
-  },
-  {
-    key: "cosecha",
-    label: "Cosecha",
-  },
-];
+const ID_TO_ETAPA: Record<number, EtapaLote> = {
+  1: "preparacion_suelo",
+  2: "siembra",
+  3: "desarrollo_vegetativo",
+  4: "floracion",
+  5: "fructificacion",
+  6: "cosecha",
+};
 
 const MONTH_NAMES = [
   "Enero",
@@ -92,35 +83,17 @@ const MONTH_NAMES = [
   "Diciembre",
 ];
 
-const initialValues: LoteFormValues = {
-  nombre: "",
-  hectareas: "",
-  temperaturaMinima: "",
-  temperaturaMaxima: "",
-  etapa: "",
-  fechaInicio: "",
-  numeroPlantas: "",
-};
-
 function formatDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 }
 
 function parseDate(value: string): Date {
-  if (!value) {
-    return new Date();
-  }
-
+  if (!value) return new Date();
   const [year, month, day] = value.split("-").map(Number);
-
-  if (!year || !month || !day) {
-    return new Date();
-  }
-
+  if (!year || !month || !day) return new Date();
   return new Date(year, month - 1, day);
 }
 
@@ -130,7 +103,7 @@ function sanitizeNumber(value: string): string {
 
 function buildCalendarDays(
   calendarMonth: Date,
-  selectedDate: string
+  selectedDate: string,
 ): CalendarDay[] {
   const year = calendarMonth.getFullYear();
   const month = calendarMonth.getMonth();
@@ -138,7 +111,6 @@ function buildCalendarDays(
   const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
   const daysInMonth = lastDayOfMonth.getDate();
-
   const startOffset = (firstDayOfMonth.getDay() + 6) % 7;
   const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
   const today = formatDate(new Date());
@@ -169,9 +141,7 @@ function validateLoteForm(values: LoteFormValues): LoteFormErrors {
   const temperaturaMaxima = Number(values.temperaturaMaxima);
   const numeroPlantas = Number(values.numeroPlantas);
 
-  if (!nombre) {
-    errors.nombre = "El nombre del lote es obligatorio";
-  }
+  if (!nombre) errors.nombre = "El nombre del lote es obligatorio";
 
   if (!values.hectareas.trim()) {
     errors.hectareas = "Las hectáreas son obligatorias";
@@ -202,9 +172,7 @@ function validateLoteForm(values: LoteFormValues): LoteFormErrors {
       "La temperatura máxima debe ser mayor que la mínima";
   }
 
-  if (!values.etapa) {
-    errors.etapa = "Debes seleccionar una etapa";
-  }
+  if (!values.etapa) errors.etapa = "Debes seleccionar una etapa";
 
   if (!values.fechaInicio) {
     errors.fechaInicio = "La fecha de inicio es obligatoria";
@@ -219,6 +187,27 @@ function validateLoteForm(values: LoteFormValues): LoteFormErrors {
   return errors;
 }
 
+type LoteFormRouteParams =
+  | { mode: "create" }
+  | { mode: "edit"; loteId: string };
+
+type UseLoteFormViewModelParams = {
+  routeParams: LoteFormRouteParams;
+  onCancel: () => void;
+  onSaved: (loteId: string) => void;
+  onNotFound: () => void;
+};
+
+const initialValues: LoteFormValues = {
+  nombre: "",
+  hectareas: "",
+  temperaturaMinima: "",
+  temperaturaMaxima: "",
+  etapa: "",
+  fechaInicio: "",
+  numeroPlantas: "",
+};
+
 export function useLoteFormViewModel({
   routeParams,
   onCancel,
@@ -231,6 +220,7 @@ export function useLoteFormViewModel({
   const [values, setValues] = useState<LoteFormValues>(initialValues);
   const [errors, setErrors] = useState<LoteFormErrors>({});
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showStageSelector, setShowStageSelector] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("days");
@@ -253,42 +243,55 @@ export function useLoteFormViewModel({
       return;
     }
 
-    const currentLote = getLoteById(loteId);
+    let cancelled = false;
 
-    if (!currentLote) {
-      onNotFound();
-      return;
-    }
+    (async () => {
+      try {
+        const lote = await getLoteUseCase.execute(loteId);
 
-    const initialDate = parseDate(currentLote.fechaInicio);
+        if (cancelled) return;
 
-    setValues({
-      nombre: currentLote.nombre,
-      hectareas: String(currentLote.hectareas),
-      temperaturaMinima: String(currentLote.temperaturaMinima),
-      temperaturaMaxima: String(currentLote.temperaturaMaxima),
-      etapa: currentLote.etapa,
-      fechaInicio: currentLote.fechaInicio,
-      numeroPlantas: String(currentLote.numeroPlantas),
-    });
+        if (!lote) {
+          onNotFound();
+          return;
+        }
 
-    setCalendarMonth(initialDate);
-    setErrors({});
-    setHasSubmitted(false);
-    setShowStageSelector(false);
-    setShowCalendar(false);
-    setCalendarMode("days");
+        const etapa: EtapaLote | "" = ID_TO_ETAPA[lote.etapaActualId] ?? "";
+        const initialDate = parseDate(lote.fechaInicio);
+
+        setValues({
+          nombre: lote.nombre,
+          hectareas: String(lote.hectareas),
+          temperaturaMinima: String(lote.temperaturaMinima),
+          temperaturaMaxima: String(lote.temperaturaMaxima),
+          etapa,
+          fechaInicio: lote.fechaInicio,
+          numeroPlantas: String(lote.numeroPlantas),
+        });
+
+        setCalendarMonth(initialDate);
+        setErrors({});
+        setHasSubmitted(false);
+        setShowStageSelector(false);
+        setShowCalendar(false);
+        setCalendarMode("days");
+      } catch {
+        if (!cancelled) onNotFound();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isEditMode, loteId]);
 
   const selectedStageLabel =
-    ETAPAS_OPTIONS.find((stage) => stage.key === values.etapa)?.label ?? "";
+    ETAPAS_OPTIONS.find((s) => s.key === values.etapa)?.label ?? "";
 
   const screenTitle = isEditMode ? "Editar lote" : "Agregar lote";
-
   const screenSubtitle = isEditMode
     ? "Edita tu área de cultivo"
     : "Registra una nueva área de cultivo";
-
   const saveButtonLabel = isEditMode ? "Actualizar lote" : "Guardar lote";
 
   const calendarMonthLabel = `${
@@ -297,18 +300,21 @@ export function useLoteFormViewModel({
 
   const calendarYear = calendarMonth.getFullYear();
 
-  const calendarDays = useMemo(() => {
-    return buildCalendarDays(calendarMonth, values.fechaInicio);
-  }, [calendarMonth, values.fechaInicio]);
+  const calendarDays = useMemo(
+    () => buildCalendarDays(calendarMonth, values.fechaInicio),
+    [calendarMonth, values.fechaInicio],
+  );
 
-  const calendarMonthOptions: CalendarMonthOption[] = useMemo(() => {
-    return MONTH_NAMES.map((monthName, index) => ({
-      id: `${calendarYear}-${index}`,
-      label: monthName,
-      monthIndex: index,
-      isSelected: index === calendarMonth.getMonth(),
-    }));
-  }, [calendarMonth, calendarYear]);
+  const calendarMonthOptions: CalendarMonthOption[] = useMemo(
+    () =>
+      MONTH_NAMES.map((monthName, index) => ({
+        id: `${calendarYear}-${index}`,
+        label: monthName,
+        monthIndex: index,
+        isSelected: index === calendarMonth.getMonth(),
+      })),
+    [calendarMonth, calendarYear],
+  );
 
   const handleChangeValue = (field: keyof LoteFormValues, value: string) => {
     const cleanValue =
@@ -316,163 +322,114 @@ export function useLoteFormViewModel({
         ? value
         : sanitizeNumber(value);
 
-    const nextValues = {
-      ...values,
-      [field]: cleanValue,
-    };
-
+    const nextValues = { ...values, [field]: cleanValue };
     setValues(nextValues);
 
-    if (hasSubmitted) {
-      setErrors(validateLoteForm(nextValues));
-    }
+    if (hasSubmitted) setErrors(validateLoteForm(nextValues));
   };
 
   const handleToggleStageSelector = () => {
-    setShowStageSelector((currentValue) => !currentValue);
+    setShowStageSelector((v) => !v);
     setShowCalendar(false);
     setCalendarMode("days");
   };
 
   const handleSelectStage = (stage: EtapaLote) => {
-    const nextValues: LoteFormValues = {
-      ...values,
-      etapa: stage,
-    };
-
+    const nextValues: LoteFormValues = { ...values, etapa: stage };
     setValues(nextValues);
     setShowStageSelector(false);
-
-    if (hasSubmitted) {
-      setErrors(validateLoteForm(nextValues));
-    }
+    if (hasSubmitted) setErrors(validateLoteForm(nextValues));
   };
 
   const handleToggleCalendar = () => {
-    const currentDate = parseDate(values.fechaInicio);
-
-    setCalendarMonth(currentDate);
+    setCalendarMonth(parseDate(values.fechaInicio));
     setCalendarMode("days");
-    setShowCalendar((currentValue) => !currentValue);
+    setShowCalendar((v) => !v);
     setShowStageSelector(false);
   };
 
   const handleToggleMonthPicker = () => {
-    setCalendarMode((currentMode) =>
-      currentMode === "days" ? "months" : "days"
-    );
+    setCalendarMode((m) => (m === "days" ? "months" : "days"));
   };
 
   const handlePreviousYear = () => {
-    setCalendarMonth((currentMonth) => {
-      return new Date(
-        currentMonth.getFullYear() - 1,
-        currentMonth.getMonth(),
-        1
-      );
-    });
+    setCalendarMonth((m) => new Date(m.getFullYear() - 1, m.getMonth(), 1));
   };
 
   const handleNextYear = () => {
-    setCalendarMonth((currentMonth) => {
-      return new Date(
-        currentMonth.getFullYear() + 1,
-        currentMonth.getMonth(),
-        1
-      );
-    });
+    setCalendarMonth((m) => new Date(m.getFullYear() + 1, m.getMonth(), 1));
   };
 
   const handleSelectMonth = (monthIndex: number) => {
-    setCalendarMonth((currentMonth) => {
-      return new Date(currentMonth.getFullYear(), monthIndex, 1);
-    });
-
+    setCalendarMonth((m) => new Date(m.getFullYear(), monthIndex, 1));
     setCalendarMode("days");
   };
 
   const handleSelectDate = (date: string) => {
-    const nextValues: LoteFormValues = {
-      ...values,
-      fechaInicio: date,
-    };
-
+    const nextValues: LoteFormValues = { ...values, fechaInicio: date };
     setValues(nextValues);
     setShowCalendar(false);
     setCalendarMode("days");
-
-    if (hasSubmitted) {
-      setErrors(validateLoteForm(nextValues));
-    }
+    if (hasSubmitted) setErrors(validateLoteForm(nextValues));
   };
 
-  const handleCancel = () => {
-    onCancel();
-  };
-
-  const handleSave = () => {
+  const handleCancel = () => onCancel();
+  const handleSave = async () => {
     setHasSubmitted(true);
 
     const validationErrors = validateLoteForm(values);
     setErrors(validationErrors);
 
-    if (Object.keys(validationErrors).length > 0) {
-      return;
+    if (Object.keys(validationErrors).length > 0) return;
+    setIsSaving(true);
+
+    try {
+      if (isEditMode) {
+        if (!loteId) {
+          onNotFound();
+          return;
+        }
+
+        const updated = await updateLoteUseCase.execute(loteId, {
+          nombre: values.nombre.trim(),
+          hectareas: Number(values.hectareas),
+          temperatura_min: Number(values.temperaturaMinima),
+          temperatura_max: Number(values.temperaturaMaxima),
+          numero_plantas: Number(values.numeroPlantas),
+        });
+
+        Alert.alert(
+          "Lote actualizado",
+          "Los cambios se guardaron correctamente.",
+        );
+        onSaved(updated.id);
+      } else {
+        const etapaId = ETAPA_TO_ID[values.etapa as EtapaLote];
+        const created = await createLoteUseCase.execute({
+          nombre: values.nombre.trim(),
+          hectareas: Number(values.hectareas),
+          temperatura_min: Number(values.temperaturaMinima),
+          temperatura_max: Number(values.temperaturaMaxima),
+          etapa_actual_id: etapaId,
+          fecha_inicio: values.fechaInicio,
+          numero_plantas: Number(values.numeroPlantas),
+        });
+
+        Alert.alert("Lote guardado", "El lote se creó correctamente.");
+        onSaved(created.id);
+      }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Ocurrió un error inesperado";
+      Alert.alert("Error", message);
+    } finally {
+      setIsSaving(false);
     }
-
-    if (isEditMode) {
-      if (!loteId) {
-        onNotFound();
-        return;
-      }
-
-      const currentLote = getLoteById(loteId);
-
-      if (!currentLote) {
-        onNotFound();
-        return;
-      }
-
-      const updatedLote = updateLote(loteId, {
-        nombre: values.nombre.trim(),
-        hectareas: Number(values.hectareas),
-        temperaturaMinima: Number(values.temperaturaMinima),
-        temperaturaMaxima: Number(values.temperaturaMaxima),
-        etapa: values.etapa as EtapaLote,
-        fechaInicio: values.fechaInicio,
-        numeroPlantas: Number(values.numeroPlantas),
-        estado: currentLote.estado,
-        produccionEstimada: currentLote.produccionEstimada,
-      });
-
-      if (!updatedLote) {
-        onNotFound();
-        return;
-      }
-
-      Alert.alert("Lote actualizado", "Los cambios se guardaron correctamente.");
-
-      onSaved(updatedLote.id);
-      return;
-    }
-
-    const newLote = createLote({
-      nombre: values.nombre.trim(),
-      hectareas: Number(values.hectareas),
-      temperaturaMinima: Number(values.temperaturaMinima),
-      temperaturaMaxima: Number(values.temperaturaMaxima),
-      etapa: values.etapa as EtapaLote,
-      fechaInicio: values.fechaInicio,
-      numeroPlantas: Number(values.numeroPlantas),
-    });
-
-    Alert.alert("Lote guardado", "El lote se creó correctamente.");
-
-    onSaved(newLote.id);
   };
 
   return {
     isEditMode,
+    isSaving,
     values,
     errors,
     stages: ETAPAS_OPTIONS,

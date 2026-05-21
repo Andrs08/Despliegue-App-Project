@@ -87,7 +87,7 @@ export function LoteFormPage() {
 
       navigation.navigate("Lots");
     },
-    onSaved: (loteId: number) => {
+    onSaved: (loteId: string) => {
       navigation.navigate("DetailLote", {
         loteId,
       });
