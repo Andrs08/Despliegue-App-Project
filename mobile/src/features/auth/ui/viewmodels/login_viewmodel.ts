@@ -78,7 +78,7 @@ export function useLoginViewModel(onSuccess: () => void) {
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
-        "Error al registrarse";
+        "Error al iniciar sesión";
       setApiError(errorMessage);
     } finally {
       setIsLoading(false);

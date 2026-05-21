@@ -95,14 +95,11 @@ export const LOTE_STAGES: LoteStageProgressItem[] = [
   },
 ];
 
-// Tipo de alerta que la página consume (presentación)
 export type AlertDisplayItem = {
   id: string;
-  title: string; // mensaje de la alerta
-  timeAgo: string; // texto relativo calculado del createdAt
+  title: string; 
+  timeAgo: string; 
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calculateDaysSinceStart(fechaInicio: string): number {
   const startDate = new Date(fechaInicio);
@@ -134,10 +131,8 @@ function toDisplayAlert(alert: LoteAlert): AlertDisplayItem {
   };
 }
 
-// ─── ViewModel ────────────────────────────────────────────────────────────────
-
 type UseDetailLoteViewModelParams = {
-  loteId: string; // ahora es string (UUID del backend)
+  loteId: string;
   onEditLote: (loteId: string) => void;
   onRegisterData: (loteId: string) => void;
   onDeleted: () => void;
@@ -155,7 +150,6 @@ export function useDetailLoteViewModel({
   const [error, setError] = useState<string | null>(null);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
 
-  // ── Carga inicial al entrar a la pantalla ──────────────────────────────────
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
@@ -192,8 +186,6 @@ export function useDetailLoteViewModel({
     }, [loteId]),
   );
 
-  // ── Derivados de presentación ──────────────────────────────────────────────
-
   const currentEtapa: EtapaLote | null = lote
     ? (ID_TO_ETAPA[lote.etapaActualId] ?? null)
     : null;
@@ -204,13 +196,8 @@ export function useDetailLoteViewModel({
   }, [currentEtapa]);
 
   const currentStageLabel = currentEtapa ? ETAPA_LABELS[currentEtapa] : "";
-
-  // Producción estimada: numero_plantas * 25
   const produccionEstimada = lote ? lote.numeroPlantas * 25 : 0;
-
   const daysSinceStart = lote ? calculateDaysSinceStart(lote.fechaInicio) : 0;
-
-  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleToggleOptionsMenu = () => {
     setShowOptionsMenu((v) => !v);

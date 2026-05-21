@@ -24,8 +24,4 @@ export class CreateNoteDto {
   @IsOptional()
   @IsString()
   imagen_url?: string;
-
-  @Type(() => Date)
-  @IsDate({ message: 'La fecha debe ser una fecha válida' })
-  fecha!: Date;
 }

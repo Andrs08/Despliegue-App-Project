@@ -62,7 +62,10 @@ export class NoteController {
     @Param('id') id: string,
     @Body() updateNoteDto: UpdateNoteDto,
     @UploadedFile() file: any,
+    @Req() req: any,
   ) {
+
+    updateNoteDto.usuario_id = req.user.userId;
     return await this.updateNoteUseCase.execute(id, updateNoteDto, file);
   }
 
