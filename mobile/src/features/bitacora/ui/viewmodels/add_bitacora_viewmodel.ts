@@ -12,9 +12,11 @@ import { LocalPreferencesAsyncStorage } from "@/src/core/LocalPreferencesAsyncSt
 import { GetLotesUseCase } from "@/src/features/lote/application/use-cases/get-lots.use-case";
 import { ApiLoteRepository } from "@/src/features/lote/infrastructure/persistence/api_lot.repository";
 import { Lote } from "@/src/features/lote/domain/entities/lot.entity";
+import { CreateNoteUseCase } from "../../application/create-note.use-case";
 
 const notesRepository = new NoteRepository();
 const deleteNoteUseCase = new DeleteNotesUseCase(notesRepository);
+const createNoteUseCase = new CreateNoteUseCase(notesRepository);
 
 const localPrefs = LocalPreferencesAsyncStorage.getInstance();
 const loteRepository = new ApiLoteRepository(localPrefs);
@@ -73,6 +75,7 @@ export function useAddBitacoraViewModel({
 
   const [title, setTitle] = useState("");
   const [lot, setLot] = useState("");
+  const [lotId, setLotId] = useState("");
   const [description, setDescription] = useState("");
   const [showLots, setShowLots] = useState(false);
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
@@ -152,16 +155,17 @@ export function useAddBitacoraViewModel({
     }
   };
 
-  const handleSelectLot = (selectedLot: string) => {
+  const handleSelectLot = (selectedLot: Lote) => {
     if (isEditMode) {
       return;
     }
 
-    setLot(selectedLot);
+    setLot(selectedLot.nombre);
+    setLotId(selectedLot.id);
     setShowLots(false);
 
     if (hasSubmitted) {
-      setErrors(validateBitacoraForm(title, selectedLot, description));
+      setErrors(validateBitacoraForm(title, selectedLot.nombre, description));
     }
   };
 
@@ -200,7 +204,7 @@ export function useAddBitacoraViewModel({
     onCancel();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setHasSubmitted(true);
 
     const validationErrors = validateBitacoraForm(title, lot, description);
@@ -216,6 +220,12 @@ export function useAddBitacoraViewModel({
         "Los cambios de la bitácora se guardaron correctamente.",
       );
     } else {
+      await createNoteUseCase.execute(
+        title,
+        description,
+        lotId,
+        selectedImageUri,
+      );
       Alert.alert("Bitácora guardada", "La bitácora se guardó correctamente.");
     }
 
