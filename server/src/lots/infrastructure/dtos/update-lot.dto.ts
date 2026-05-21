@@ -19,5 +19,12 @@ export class UpdateLoteDTO {
 
   @IsOptional()
   @IsNumber()
+  etapa_actual_id?: number;
+
+  @IsOptional()
+  fecha_inicio?: Date;
+
+  @IsOptional()
+  @IsNumber()
   numero_plantas?: number;
 }

@@ -11,8 +11,16 @@ export class EvaluateStageRecordUseCase {
 
   async execute(etapa_actuaL_id: number, datos: any) {
     const alertas: AgriculturalAlert[] = [];
-    console.log('hectareasss: ' + datos.hectareas)
     switch (etapa_actuaL_id) {
+      case 1: {
+        const fertilizer = this.fertilizerRules.evaluate(
+          datos.plantas_totales,
+          datos.fertilizante_aplicado,
+        );
+        if (fertilizer) {
+          alertas.push(fertilizer);
+        }
+      }
       case 2: {
         const irrigation = this.irrigationRules.evaluate(
           datos.frecuencia_riego_mensual,
@@ -34,19 +42,32 @@ export class EvaluateStageRecordUseCase {
         if (irrigation) {
           alertas.push(irrigation);
         }
-        const fertilizer = this.fertilizerRules(
-          datos.plantas_totales,
-          datos.fertilizante_aplicado,
-        );
-        if (fertilizer) {
-          alertas.push(fertilizer);
-        }
         const disease = this.diseaseRules.evaluate(
           datos.plantas_enfermas,
           datos.plantas_totales,
         );
         if (disease) {
           alertas.push(disease);
+        }
+        return alertas;
+      }
+
+      case 4: {
+        const irrigation = this.irrigationRules.evaluate(
+          datos.frecuencia_riego_mensual,
+        );
+        if (irrigation) {
+          alertas.push(irrigation);
+        }
+        return alertas;
+      }
+
+      case 5: {
+        const irrigation = this.irrigationRules.evaluate(
+          datos.frecuencia_riego_mensual,
+        );
+        if (irrigation) {
+          alertas.push(irrigation);
         }
         return alertas;
       }

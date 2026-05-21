@@ -2,17 +2,44 @@ import { useCallback, useMemo, useState } from "react";
 import { Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 
-import type {
-  EtapaLote,
-  LoteRouteItem,
-} from "../../../../core/navigation/app_navigator";
-import { getLoteById } from "../../infrastructure/persistence/lote";
+import type { EtapaLote } from "../../domain/entities/lot.entity";
+import type { Lote } from "../../domain/entities/lot.entity";
+
+import { GetLoteUseCase } from "../../application/use-cases/get-lot.use-case";
+import { ApiLoteRepository } from "../../infrastructure/persistence/api_lot.repository";
+import { ApiStageRecordRepository } from "../../infrastructure/persistence/api_stage-record.repository";
+import { LocalPreferencesAsyncStorage } from "../../../../core/LocalPreferencesAsyncStorage";
+
+const storage = LocalPreferencesAsyncStorage.getInstance();
+const loteRepo = new ApiLoteRepository(storage);
+const stageRecordRepo = new ApiStageRecordRepository(storage);
+
+const getLoteUseCase = new GetLoteUseCase(loteRepo);
+
+export const ETAPA_TO_ID: Record<EtapaLote, number> = {
+  preparacion_suelo: 1,
+  siembra: 2,
+  desarrollo_vegetativo: 3,
+  floracion: 4,
+  fructificacion: 5,
+  cosecha: 6,
+};
+
+export const ID_TO_ETAPA: Record<number, EtapaLote> = {
+  1: "preparacion_suelo",
+  2: "siembra",
+  3: "desarrollo_vegetativo",
+  4: "floracion",
+  5: "fructificacion",
+  6: "cosecha",
+};
 
 export type RegistroCampo = {
   key: string;
   label: string;
   placeholder: string;
   type: "date" | "number";
+  hiddenFromLote?: boolean;
 };
 
 export type EtapaRegistro = {
@@ -41,13 +68,6 @@ export type CalendarMonthOption = {
   isSelected: boolean;
 };
 
-export type RegistroLotePayload = {
-  lote_id: number;
-  etapa_id: EtapaLote;
-  fecha_inicio: string;
-  datos: Record<string, number>;
-};
-
 type UseRegisterLoteDataViewModelParams = {
   loteId: string;
   onCancel: () => void;
@@ -71,8 +91,15 @@ export const ETAPAS_REGISTRO: EtapaRegistro[] = [
       {
         key: "fertilizante_aplicado",
         label: "Fertilizante aplicado",
-        placeholder: "Ingrese fertilizante aplicado",
+        placeholder: "Ingrese fertilizante aplicado (kg)",
         type: "number",
+      },
+      {
+        key: "plantas_totales",
+        label: "Plantas totales",
+        placeholder: "Ingrese plantas totales",
+        type: "number",
+        hiddenFromLote: true,
       },
     ],
   },
@@ -89,7 +116,7 @@ export const ETAPAS_REGISTRO: EtapaRegistro[] = [
       },
       {
         key: "distancia_plantas",
-        label: "Distancia entre plantas",
+        label: "Distancia entre plantas (m)",
         placeholder: "Ingrese distancia entre plantas",
         type: "number",
       },
@@ -111,6 +138,7 @@ export const ETAPAS_REGISTRO: EtapaRegistro[] = [
         label: "Plantas totales",
         placeholder: "Ingrese plantas totales",
         type: "number",
+        hiddenFromLote: true,
       },
       {
         key: "plantas_enfermas",
@@ -168,6 +196,7 @@ export const ETAPAS_REGISTRO: EtapaRegistro[] = [
         label: "Hectáreas",
         placeholder: "Ingrese hectáreas",
         type: "number",
+        hiddenFromLote: true,
       },
     ],
   },
@@ -192,21 +221,13 @@ function formatDate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-
   return `${year}-${month}-${day}`;
 }
 
 function parseDate(value: string): Date {
-  if (!value) {
-    return new Date();
-  }
-
+  if (!value) return new Date();
   const [year, month, day] = value.split("-").map(Number);
-
-  if (!year || !month || !day) {
-    return new Date();
-  }
-
+  if (!year || !month || !day) return new Date();
   return new Date(year, month - 1, day);
 }
 
@@ -216,7 +237,7 @@ function sanitizeNumber(value: string): string {
 
 function buildCalendarDays(
   calendarMonth: Date,
-  selectedDate: string
+  selectedDate: string,
 ): CalendarDay[] {
   const year = calendarMonth.getFullYear();
   const month = calendarMonth.getMonth();
@@ -224,7 +245,6 @@ function buildCalendarDays(
   const firstDayOfMonth = new Date(year, month, 1);
   const lastDayOfMonth = new Date(year, month + 1, 0);
   const daysInMonth = lastDayOfMonth.getDate();
-
   const startOffset = (firstDayOfMonth.getDay() + 6) % 7;
   const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
   const today = formatDate(new Date());
@@ -247,12 +267,12 @@ function buildCalendarDays(
 }
 
 function validateForm(
-  fields: RegistroCampo[],
-  values: Record<string, string>
+  visibleFields: RegistroCampo[],
+  values: Record<string, string>,
 ): RegisterLoteDataErrors {
   const newErrors: RegisterLoteDataErrors = {};
 
-  fields.forEach((field) => {
+  visibleFields.forEach((field) => {
     const value = values[field.key]?.trim() ?? "";
 
     if (!value) {
@@ -297,10 +317,12 @@ export function useRegisterLoteDataViewModel({
   onSaved,
   onNotFound,
 }: UseRegisterLoteDataViewModelParams) {
-  const [lote, setLote] = useState<LoteRouteItem | null>(null);
+  const [lote, setLote] = useState<Lote | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [selectedStage, setSelectedStage] =
     useState<EtapaLote>("preparacion_suelo");
-  const [showStageSelector, setShowStageSelector] = useState(false);
+
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("days");
   const [calendarMonth, setCalendarMonth] = useState(new Date());
@@ -310,35 +332,60 @@ export function useRegisterLoteDataViewModel({
 
   useFocusEffect(
     useCallback(() => {
-      const currentLote = getLoteById(loteId);
+      let cancelled = false;
 
-      if (!currentLote) {
-        onNotFound();
-        return;
+      async function load() {
+        setIsLoading(true);
+
+        try {
+          const currentLote = await getLoteUseCase.execute(loteId);
+
+          if (cancelled) return;
+
+          if (!currentLote) {
+            onNotFound();
+            return;
+          }
+
+          const etapa =
+            ID_TO_ETAPA[currentLote.etapaActualId] ?? "preparacion_suelo";
+          const initialDate = parseDate(currentLote.fechaInicio);
+
+          setLote(currentLote);
+          setSelectedStage(etapa);
+          setCalendarMonth(initialDate);
+
+          setValues(buildInitialValues(etapa, currentLote));
+          setErrors({});
+          setHasSubmitted(false);
+          setShowCalendar(false);
+          setCalendarMode("days");
+        } catch {
+          if (!cancelled) onNotFound();
+        } finally {
+          if (!cancelled) setIsLoading(false);
+        }
       }
 
-      const initialDate = parseDate(currentLote.fechaInicio);
+      load();
 
-      setLote(currentLote);
-      setSelectedStage(currentLote.etapa);
-      setCalendarMonth(initialDate);
-      setValues({
-        fecha_inicio: currentLote.fechaInicio,
-      });
-      setErrors({});
-      setHasSubmitted(false);
-      setShowStageSelector(false);
-      setShowCalendar(false);
-      setCalendarMode("days");
-    }, [loteId, onNotFound])
+      return () => {
+        cancelled = true;
+      };
+    }, [loteId, onNotFound]),
   );
 
-  const selectedStageData = useMemo(() => {
-    return (
+  const selectedStageData = useMemo(
+    () =>
       ETAPAS_REGISTRO.find((item) => item.key === selectedStage) ??
-      ETAPAS_REGISTRO[0]
-    );
-  }, [selectedStage]);
+      ETAPAS_REGISTRO[0],
+    [selectedStage],
+  );
+
+  const visibleFields = useMemo(
+    () => selectedStageData.fields.filter((f) => !f.hiddenFromLote),
+    [selectedStageData],
+  );
 
   const shouldShowCosechaWarning = selectedStage === "cosecha";
 
@@ -348,108 +395,65 @@ export function useRegisterLoteDataViewModel({
 
   const calendarYear = calendarMonth.getFullYear();
 
-  const calendarDays = useMemo(() => {
-    return buildCalendarDays(calendarMonth, values.fecha_inicio ?? "");
-  }, [calendarMonth, values.fecha_inicio]);
+  const calendarDays = useMemo(
+    () => buildCalendarDays(calendarMonth, values.fecha_inicio ?? ""),
+    [calendarMonth, values.fecha_inicio],
+  );
 
-  const calendarMonthOptions: CalendarMonthOption[] = useMemo(() => {
-    return MONTH_NAMES.map((monthName, index) => ({
-      id: `${calendarYear}-${index}`,
-      label: monthName,
-      monthIndex: index,
-      isSelected: index === calendarMonth.getMonth(),
-    }));
-  }, [calendarMonth, calendarYear]);
-
-  const handleToggleStageSelector = () => {
-    setShowStageSelector((currentValue) => !currentValue);
-    setShowCalendar(false);
-    setCalendarMode("days");
-  };
-
-  const handleSelectStage = (stage: EtapaLote) => {
-    setSelectedStage(stage);
-    setShowStageSelector(false);
-    setShowCalendar(false);
-    setCalendarMode("days");
-    setErrors({});
-    setHasSubmitted(false);
-
-    setValues((currentValues) => ({
-      fecha_inicio: currentValues.fecha_inicio ?? lote?.fechaInicio ?? "",
-    }));
-  };
+  const calendarMonthOptions: CalendarMonthOption[] = useMemo(
+    () =>
+      MONTH_NAMES.map((monthName, index) => ({
+        id: `${calendarYear}-${index}`,
+        label: monthName,
+        monthIndex: index,
+        isSelected: index === calendarMonth.getMonth(),
+      })),
+    [calendarMonth, calendarYear],
+  );
 
   const handleChangeValue = (field: RegistroCampo, value: string) => {
     const cleanValue = field.type === "number" ? sanitizeNumber(value) : value;
 
-    const nextValues = {
-      ...values,
-      [field.key]: cleanValue,
-    };
-
+    const nextValues = { ...values, [field.key]: cleanValue };
     setValues(nextValues);
 
     if (hasSubmitted) {
-      setErrors(validateForm(selectedStageData.fields, nextValues));
+      setErrors(validateForm(visibleFields, nextValues));
     }
   };
 
   const handleToggleCalendar = () => {
     const currentDate = parseDate(values.fecha_inicio ?? "");
-
     setCalendarMonth(currentDate);
     setCalendarMode("days");
-    setShowCalendar((currentValue) => !currentValue);
-    setShowStageSelector(false);
+    setShowCalendar((v) => !v);
   };
 
   const handleToggleMonthPicker = () => {
-    setCalendarMode((currentMode) =>
-      currentMode === "days" ? "months" : "days"
-    );
+    setCalendarMode((m) => (m === "days" ? "months" : "days"));
   };
 
   const handlePreviousYear = () => {
-    setCalendarMonth((currentMonth) => {
-      return new Date(
-        currentMonth.getFullYear() - 1,
-        currentMonth.getMonth(),
-        1
-      );
-    });
+    setCalendarMonth((d) => new Date(d.getFullYear() - 1, d.getMonth(), 1));
   };
 
   const handleNextYear = () => {
-    setCalendarMonth((currentMonth) => {
-      return new Date(
-        currentMonth.getFullYear() + 1,
-        currentMonth.getMonth(),
-        1
-      );
-    });
+    setCalendarMonth((d) => new Date(d.getFullYear() + 1, d.getMonth(), 1));
   };
 
   const handleSelectMonth = (monthIndex: number) => {
-    setCalendarMonth((currentMonth) => {
-      return new Date(currentMonth.getFullYear(), monthIndex, 1);
-    });
-
+    setCalendarMonth((d) => new Date(d.getFullYear(), monthIndex, 1));
     setCalendarMode("days");
   };
 
   const handleSelectDate = (date: string) => {
-    const nextValues = {
-      ...values,
-      fecha_inicio: date,
-    };
-
+    const nextValues = { ...values, fecha_inicio: date };
     setValues(nextValues);
     setShowCalendar(false);
     setCalendarMode("days");
 
     if (hasSubmitted) {
-      setErrors(validateForm(selectedStageData.fields, nextValues));
+      setErrors(validateForm(visibleFields, nextValues));
     }
   };
 
@@ -457,7 +461,7 @@ export function useRegisterLoteDataViewModel({
     onCancel();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!lote) {
       onNotFound();
       return;
@@ -465,42 +469,54 @@ export function useRegisterLoteDataViewModel({
 
     setHasSubmitted(true);
 
-    const validationErrors = validateForm(selectedStageData.fields, values);
+    const validationErrors = validateForm(visibleFields, values);
     setErrors(validationErrors);
 
-    if (Object.keys(validationErrors).length > 0) {
-      return;
+    if (Object.keys(validationErrors).length > 0) return;
+
+    const datos = selectedStageData.fields
+      .filter((f) => f.key !== "fecha_inicio")
+      .reduce<Record<string, number>>((acc, field) => {
+        acc[field.key] = Number(values[field.key] ?? 0);
+        return acc;
+      }, {});
+
+    setIsSaving(true);
+
+    try {
+      await stageRecordRepo.create({
+        lote_id: lote.id,
+        etapa_id: ETAPA_TO_ID[selectedStage],
+        datos,
+        fecha: values.fecha_inicio,
+      });
+
+      Alert.alert(
+        "Datos guardados",
+        "Los datos del lote se registraron correctamente.",
+      );
+
+      onSaved();
+    } catch (error) {
+      Alert.alert(
+        "Error al guardar",
+        error instanceof Error
+          ? error.message
+          : "Ocurrió un error inesperado. Intente de nuevo.",
+      );
+    } finally {
+      setIsSaving(false);
     }
-
-    const payload: RegistroLotePayload = {
-      lote_id: lote.id,
-      etapa_id: selectedStage,
-      fecha_inicio: values.fecha_inicio,
-      datos: selectedStageData.fields
-        .filter((field) => field.key !== "fecha_inicio")
-        .reduce<Record<string, number>>((accumulator, field) => {
-          accumulator[field.key] = Number(values[field.key]);
-          return accumulator;
-        }, {}),
-    };
-
-    console.log("Registro de etapa:", payload);
-
-    Alert.alert(
-      "Datos guardados",
-      "Los datos del lote se registraron correctamente."
-    );
-
-    onSaved();
   };
 
   return {
     lote,
-    stages: ETAPAS_REGISTRO,
+    isLoading,
+    isSaving,
     selectedStage,
     selectedStageData,
+    visibleFields,
     shouldShowCosechaWarning,
-    showStageSelector,
     showCalendar,
     calendarMode,
     values,
@@ -509,8 +525,6 @@ export function useRegisterLoteDataViewModel({
     calendarMonthLabel,
     calendarYear,
     calendarMonthOptions,
-    handleToggleStageSelector,
-    handleSelectStage,
     handleChangeValue,
     handleToggleCalendar,
     handleToggleMonthPicker,
@@ -521,4 +535,23 @@ export function useRegisterLoteDataViewModel({
     handleCancel,
     handleSave,
   };
+}
+
+function buildInitialValues(
+  etapa: EtapaLote,
+  lote: Lote,
+): Record<string, string> {
+  const initial: Record<string, string> = {
+    fecha_inicio: lote.fechaInicio,
+  };
+
+  if (etapa === "desarrollo_vegetativo" || etapa === "preparacion_suelo") {
+    initial.plantas_totales = String(lote.numeroPlantas);
+  }
+
+  if (etapa === "cosecha") {
+    initial.hectareas = String(lote.hectareas);
+  }
+
+  return initial;
 }

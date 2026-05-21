@@ -395,6 +395,8 @@ export function useLoteFormViewModel({
           hectareas: Number(values.hectareas),
           temperatura_min: Number(values.temperaturaMinima),
           temperatura_max: Number(values.temperaturaMaxima),
+          etapa_actual_id: ETAPA_TO_ID[values.etapa as EtapaLote],
+          fecha_inicio: new Date(values.fechaInicio).toISOString(),
           numero_plantas: Number(values.numeroPlantas),
         });
 

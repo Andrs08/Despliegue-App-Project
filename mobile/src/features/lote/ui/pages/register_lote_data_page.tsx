@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -20,10 +21,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import type {
-  EtapaLote,
-  RootStackParamList,
-} from "../../../../core/navigation/app_navigator";
+import type { RootStackParamList } from "../../../../core/navigation/app_navigator";
 import { AppHeader } from "../../../../shared/ui/app_header";
 import { BottomNavigationBar } from "../../../../shared/ui/bottom_navigation_bar";
 import {
@@ -54,11 +52,12 @@ export function RegisterLoteDataPage() {
 
   const {
     lote,
-    stages,
+    isLoading,
+    isSaving,
     selectedStage,
     selectedStageData,
+    visibleFields,
     shouldShowCosechaWarning,
-    showStageSelector,
     showCalendar,
     calendarMode,
     values,
@@ -67,8 +66,6 @@ export function RegisterLoteDataPage() {
     calendarMonthLabel,
     calendarYear,
     calendarMonthOptions,
-    handleToggleStageSelector,
-    handleSelectStage,
     handleChangeValue,
     handleToggleCalendar,
     handleToggleMonthPicker,
@@ -131,94 +128,79 @@ export function RegisterLoteDataPage() {
     );
   };
 
-  const renderCalendar = () => {
-    return (
-      <View style={styles.calendarBox}>
-        {calendarMode === "days" ? (
-          <>
-            <TouchableOpacity
-              style={styles.calendarMonthButton}
-              activeOpacity={0.75}
-              onPress={handleToggleMonthPicker}
-            >
-              <Text style={styles.calendarMonthText}>{calendarMonthLabel}</Text>
+  const renderCalendar = () => (
+    <View style={styles.calendarBox}>
+      {calendarMode === "days" ? (
+        <>
+          <TouchableOpacity
+            style={styles.calendarMonthButton}
+            activeOpacity={0.75}
+            onPress={handleToggleMonthPicker}
+          >
+            <Text style={styles.calendarMonthText}>{calendarMonthLabel}</Text>
+            <Ionicons name="chevron-down" size={16} color={COLORS.green} />
+          </TouchableOpacity>
 
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color={COLORS.green}
-              />
+          <View style={styles.weekDaysRow}>
+            {WEEK_DAYS.map((day, index) => (
+              <Text key={`${day}-${index}`} style={styles.weekDayText}>
+                {day}
+              </Text>
+            ))}
+          </View>
+
+          <View style={styles.calendarGrid}>
+            {calendarDays.map(renderCalendarDay)}
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={styles.calendarYearHeader}>
+            <TouchableOpacity
+              style={styles.calendarArrowButton}
+              activeOpacity={0.7}
+              onPress={handlePreviousYear}
+            >
+              <Ionicons name="chevron-back" size={18} color={COLORS.green} />
             </TouchableOpacity>
 
-            <View style={styles.weekDaysRow}>
-              {WEEK_DAYS.map((day, index) => (
-                <Text key={`${day}-${index}`} style={styles.weekDayText}>
-                  {day}
-                </Text>
-              ))}
-            </View>
+            <Text style={styles.calendarYearText}>{calendarYear}</Text>
 
-            <View style={styles.calendarGrid}>
-              {calendarDays.map(renderCalendarDay)}
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={styles.calendarYearHeader}>
+            <TouchableOpacity
+              style={styles.calendarArrowButton}
+              activeOpacity={0.7}
+              onPress={handleNextYear}
+            >
+              <Ionicons name="chevron-forward" size={18} color={COLORS.green} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.monthsGrid}>
+            {calendarMonthOptions.map((month) => (
               <TouchableOpacity
-                style={styles.calendarArrowButton}
-                activeOpacity={0.7}
-                onPress={handlePreviousYear}
+                key={month.id}
+                style={[
+                  styles.monthCell,
+                  month.isSelected ? styles.monthCellSelected : null,
+                ]}
+                activeOpacity={0.75}
+                onPress={() => handleSelectMonth(month.monthIndex)}
               >
-                <Ionicons
-                  name="chevron-back"
-                  size={18}
-                  color={COLORS.green}
-                />
-              </TouchableOpacity>
-
-              <Text style={styles.calendarYearText}>{calendarYear}</Text>
-
-              <TouchableOpacity
-                style={styles.calendarArrowButton}
-                activeOpacity={0.7}
-                onPress={handleNextYear}
-              >
-                <Ionicons
-                  name="chevron-forward"
-                  size={18}
-                  color={COLORS.green}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.monthsGrid}>
-              {calendarMonthOptions.map((month) => (
-                <TouchableOpacity
-                  key={month.id}
+                <Text
                   style={[
-                    styles.monthCell,
-                    month.isSelected ? styles.monthCellSelected : null,
+                    styles.monthCellText,
+                    month.isSelected ? styles.monthCellTextSelected : null,
                   ]}
-                  activeOpacity={0.75}
-                  onPress={() => handleSelectMonth(month.monthIndex)}
                 >
-                  <Text
-                    style={[
-                      styles.monthCellText,
-                      month.isSelected ? styles.monthCellTextSelected : null,
-                    ]}
-                  >
-                    {month.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </>
-        )}
-      </View>
-    );
-  };
+                  {month.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
+    </View>
+  );
 
   const renderField = (field: RegistroCampo) => {
     const isDateField = field.type === "date";
@@ -253,12 +235,7 @@ export function RegisterLoteDataPage() {
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={handleToggleCalendar}
-              hitSlop={{
-                top: 10,
-                bottom: 10,
-                left: 10,
-                right: 10,
-              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
                 name="calendar-outline"
@@ -302,10 +279,11 @@ export function RegisterLoteDataPage() {
     );
   };
 
-  if (!lote) {
+  if (isLoading || !lote) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.notFoundContainer}>
+          <ActivityIndicator size="large" color={COLORS.green} />
           <Text style={styles.notFoundText}>Cargando lote...</Text>
         </View>
       </SafeAreaView>
@@ -338,10 +316,7 @@ export function RegisterLoteDataPage() {
               <Text
                 style={[
                   styles.screenTitle,
-                  {
-                    fontSize: titleFontSize,
-                    lineHeight: titleFontSize + 4,
-                  },
+                  { fontSize: titleFontSize, lineHeight: titleFontSize + 4 },
                 ]}
               >
                 {lote.nombre}
@@ -349,65 +324,12 @@ export function RegisterLoteDataPage() {
 
               <Text style={styles.subtitle}>Registra los datos de tu lote</Text>
 
-              <TouchableOpacity
-                style={styles.stageSelect}
-                activeOpacity={0.8}
-                onPress={handleToggleStageSelector}
-              >
-                <Text
-                  style={[
-                    styles.stageSelectText,
-                    selectedStageData.label
-                      ? styles.inputText
-                      : styles.placeholderText,
-                  ]}
-                >
-                  {selectedStageData.label || "Selecciona una etapa"}
+              <View style={styles.stageDisplay}>
+                <Text style={styles.stageDisplayText}>
+                  {selectedStageData.label}
                 </Text>
-
-                <Ionicons
-                  name={showStageSelector ? "chevron-up" : "chevron-down"}
-                  size={18}
-                  color={COLORS.green}
-                />
-              </TouchableOpacity>
-
-              {showStageSelector ? (
-                <View style={styles.dropdown}>
-                  {stages.map((stage) => {
-                    const isSelected = stage.key === selectedStage;
-
-                    return (
-                      <TouchableOpacity
-                        key={stage.key}
-                        style={[
-                          styles.dropdownItem,
-                          isSelected ? styles.dropdownItemActive : null,
-                        ]}
-                        activeOpacity={0.8}
-                        onPress={() => handleSelectStage(stage.key as EtapaLote)}
-                      >
-                        <Text
-                          style={[
-                            styles.dropdownText,
-                            isSelected ? styles.dropdownTextActive : null,
-                          ]}
-                        >
-                          {stage.label}
-                        </Text>
-
-                        {isSelected ? (
-                          <Ionicons
-                            name="checkmark"
-                            size={17}
-                            color={COLORS.green}
-                          />
-                        ) : null}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              ) : null}
+                <Ionicons name="lock-closed-outline" size={16} color={COLORS.gray} />
+              </View>
 
               {shouldShowCosechaWarning ? (
                 <View style={styles.warningRow}>
@@ -416,7 +338,6 @@ export function RegisterLoteDataPage() {
                     size={18}
                     color={COLORS.pink}
                   />
-
                   <Text style={styles.warningText}>
                     Ten en cuenta que para esta etapa ya debe estar finalizada
                   </Text>
@@ -426,7 +347,7 @@ export function RegisterLoteDataPage() {
               <View style={styles.formCard}>
                 <Text style={styles.formTitle}>{selectedStageData.label}</Text>
 
-                {selectedStageData.fields.map(renderField)}
+                {visibleFields.map(renderField)}
               </View>
 
               <View style={styles.buttonsContainer}>
@@ -434,22 +355,32 @@ export function RegisterLoteDataPage() {
                   style={styles.cancelButton}
                   activeOpacity={0.8}
                   onPress={handleCancel}
+                  disabled={isSaving}
                 >
                   <Text style={styles.cancelButtonText}>cancelar</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.saveButton}
+                  style={[
+                    styles.saveButton,
+                    isSaving ? styles.saveButtonDisabled : null,
+                  ]}
                   activeOpacity={0.8}
                   onPress={handleSave}
+                  disabled={isSaving}
                 >
-                  <Ionicons
-                    name="save-outline"
-                    size={15}
-                    color={COLORS.background}
-                  />
-
-                  <Text style={styles.saveButtonText}>Guardar datos</Text>
+                  {isSaving ? (
+                    <ActivityIndicator size="small" color={COLORS.background} />
+                  ) : (
+                    <Ionicons
+                      name="save-outline"
+                      size={15}
+                      color={COLORS.background}
+                    />
+                  )}
+                  <Text style={styles.saveButtonText}>
+                    {isSaving ? "Guardando..." : "Guardar datos"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -471,6 +402,7 @@ const COLORS = {
   yellow: "#F6C94D",
   error: "#C94C4C",
   softGreen: "rgba(93, 123, 61, 0.08)",
+  disabledGreen: "rgba(93, 123, 61, 0.15)",
 };
 
 const styles = StyleSheet.create({
@@ -512,57 +444,26 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     marginBottom: 22,
   },
-  stageSelect: {
+  stageDisplay: {
     width: "100%",
     minHeight: 42,
     borderWidth: 1,
-    borderColor: COLORS.green,
+    borderColor: COLORS.disabledGreen,
     borderRadius: 8,
     paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.softGreen,
     marginBottom: 16,
   },
-  stageSelectText: {
+  stageDisplayText: {
     flex: 1,
     fontFamily: "MaidenOrange_400Regular",
     fontSize: 14,
     lineHeight: 18,
-    paddingRight: 8,
-  },
-  dropdown: {
-    width: "100%",
-    borderWidth: 1,
-    borderColor: "rgba(93, 123, 61, 0.24)",
-    borderRadius: 8,
-    backgroundColor: COLORS.background,
-    marginTop: -8,
-    marginBottom: 16,
-    overflow: "hidden",
-  },
-  dropdownItem: {
-    minHeight: 38,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(93, 123, 61, 0.12)",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  dropdownItemActive: {
-    backgroundColor: COLORS.softGreen,
-  },
-  dropdownText: {
-    flex: 1,
-    fontFamily: "MaidenOrange_400Regular",
-    fontSize: 14,
-    color: COLORS.black,
-    paddingRight: 8,
-  },
-  dropdownTextActive: {
     color: COLORS.green,
+    paddingRight: 8,
   },
   warningRow: {
     width: "100%",
@@ -588,10 +489,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
     marginBottom: 70,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.16,
     shadowRadius: 4,
     elevation: 4,
@@ -677,10 +575,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 8,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.18,
     shadowRadius: 5,
   },
@@ -820,6 +715,9 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 24,
   },
+  saveButtonDisabled: {
+    opacity: 0.7,
+  },
   saveButtonText: {
     fontFamily: "AlfaSlabOne_400Regular",
     color: COLORS.background,
@@ -832,10 +730,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     justifyContent: "center",
     alignItems: "center",
+    gap: 12,
   },
   notFoundText: {
     fontFamily: "MaidenOrange_400Regular",
     color: COLORS.green,
-    fontSize: 24,
+    fontSize: 18,
   },
 });

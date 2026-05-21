@@ -15,6 +15,8 @@ export type UpdateLoteInput = {
   hectareas?: number;
   temperatura_min?: number;
   temperatura_max?: number;
+  etapa_actual_id?: number;
+  fecha_inicio?: string;
   numero_plantas?: number;
 };
 

@@ -142,7 +142,6 @@ export class PrismaLoteRepository implements LoteRepository {
   }
 
   private toDomain(lote: any): Lot {
-    // Calcula el estado a partir de las alertas activas (igual que findWithFilters)
     const alertasActivas: any[] =
       lote.alerta?.filter((a: any) => !a.resuelta) ?? [];
     let estado: string;
