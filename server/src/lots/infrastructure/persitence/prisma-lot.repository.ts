@@ -6,6 +6,8 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { LotStatus } from 'src/lots/domain/interfaces/lot-status.enum';
+import { FilterLotsDTO } from '../dtos/filter-lot-by-status.dto';
 
 @Injectable()
 export class PrismaLoteRepository implements LoteRepository {
@@ -35,6 +37,7 @@ export class PrismaLoteRepository implements LoteRepository {
   async findById(id: string): Promise<Lot | null> {
     const lote = await this.prisma.lote.findUnique({
       where: { id },
+      include: { alerta: true },
     });
 
     if (!lote) {
@@ -59,11 +62,9 @@ export class PrismaLoteRepository implements LoteRepository {
       where: { id },
       data,
     });
-
     if (!updated) {
       return null;
     }
-
     return this.toDomain(updated);
   }
 
@@ -77,7 +78,85 @@ export class PrismaLoteRepository implements LoteRepository {
     }
   }
 
+  async findWithFilters(
+    userId: string,
+    filters: FilterLotsDTO,
+  ): Promise<Lot[]> {
+    const where: any = {
+      usuario_id: userId,
+    };
+
+    if (filters.nombre) {
+      where.nombre = {
+        contains: filters.nombre.trim(),
+        mode: 'insensitive',
+      };
+    }
+
+    if (filters.estado === LotStatus.HEALTHY) {
+      where.alerta = {
+        none: {
+          resuelta: false,
+        },
+      };
+    }
+
+    if (filters.estado === LotStatus.RISK) {
+      where.alerta = {
+        some: {
+          resuelta: false,
+          OR: [{ nivel: 'ALTO' }, { nivel: 'MEDIO' }],
+        },
+      };
+    }
+
+    if (filters.estado === LotStatus.OBSERVATION) {
+      where.AND = [
+        {
+          alerta: {
+            some: {
+              resuelta: false,
+
+              nivel: 'BAJO',
+            },
+          },
+        },
+        {
+          alerta: {
+            none: {
+              resuelta: false,
+              OR: [{ nivel: 'ALTO' }, { nivel: 'MEDIO' }],
+            },
+          },
+        },
+      ];
+    }
+
+    const lotes = await this.prisma.lote.findMany({
+      where,
+      include: {
+        alerta: true,
+      },
+    });
+    return lotes.map(this.toDomain);
+  }
+
   private toDomain(lote: any): Lot {
+    const alertasActivas: any[] =
+      lote.alerta?.filter((a: any) => !a.resuelta) ?? [];
+    let estado: string;
+    const tieneAlto = alertasActivas.some(
+      (a) => a.nivel === 'ALTO' || a.nivel === 'MEDIO',
+    );
+    const tieneBajo = alertasActivas.some((a) => a.nivel === 'BAJO');
+    if (tieneAlto) {
+      estado = 'Riesgo';
+    } else if (tieneBajo) {
+      estado = 'Observación';
+    } else {
+      estado = 'Sano';
+    }
+
     return new Lot(
       lote.id,
       lote.usuario_id,
@@ -85,11 +164,10 @@ export class PrismaLoteRepository implements LoteRepository {
       lote.hectareas,
       lote.temperatura_min,
       lote.temperatura_max,
-      lote.etapa_actual,
+      lote.etapa_actual_id,
       lote.fecha_inicio,
       lote.numero_plantas,
+      estado,
     );
   }
 }
-
-

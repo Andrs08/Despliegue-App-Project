@@ -1,10 +1,12 @@
-import { Controller, Get, Put, Post, Param, Body } from '@nestjs/common';
+import { Controller, Get, Put, Post, Param, Body, UseGuards } from '@nestjs/common';
 import { CreateAlertUseCase } from '../../application/use-cases/create-alert.use-case';
 import { GetAlertsUseCase } from '../../application/use-cases/get-alerts.use-case';
 import { GetLotAlertsUseCase } from '../../application/use-cases/get-lot-alerts.use-case';
 import { MarkAlertAsResolvedUseCase } from '../../application/use-cases/mark-alert-as-resolved.use-case';
 import { CreateAlertDTO } from '../dtos/create-alert.dto';
+import { JwtGuard } from 'src/auth/infrastructure/guards/jwt.guard';
 
+@UseGuards(JwtGuard)
 @Controller('alerts')
 export class AlertController {
   constructor(
