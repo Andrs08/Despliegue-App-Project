@@ -13,10 +13,12 @@ import { GetLotesUseCase } from "@/src/features/lote/application/use-cases/get-l
 import { ApiLoteRepository } from "@/src/features/lote/infrastructure/persistence/api_lot.repository";
 import { Lote } from "@/src/features/lote/domain/entities/lot.entity";
 import { CreateNoteUseCase } from "../../application/create-note.use-case";
+import { UpdateNoteUseCase } from "../../application/update-note.use-case";
 
 const notesRepository = new NoteRepository();
 const deleteNoteUseCase = new DeleteNotesUseCase(notesRepository);
 const createNoteUseCase = new CreateNoteUseCase(notesRepository);
+const updateNoteUseCase = new UpdateNoteUseCase(notesRepository);
 
 const localPrefs = LocalPreferencesAsyncStorage.getInstance();
 const loteRepository = new ApiLoteRepository(localPrefs);
@@ -215,6 +217,12 @@ export function useAddBitacoraViewModel({
     }
 
     if (isEditMode) {
+      await updateNoteUseCase.execute(
+        routeParams.bitacora.id,
+        title,
+        description,
+        selectedImageUri,
+      );
       Alert.alert(
         "Bitácora actualizada",
         "Los cambios de la bitácora se guardaron correctamente.",

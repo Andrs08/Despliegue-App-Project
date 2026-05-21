@@ -7,6 +7,7 @@ import { BitacoraRouteItem } from "@/src/core/navigation/app_navigator";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 const SESSION_STORAGE = process.env.EXPO_PUBLIC_LOCAL_TOKEN;
+const USER_ID_STORAGE = process.env.EXPO_PUBLIC_LOCAL_USER_ID;
 
 export class NoteRepository implements INotesRepository {
   private localPreferences = LocalPreferencesAsyncStorage.getInstance();
@@ -61,19 +62,17 @@ export class NoteRepository implements INotesRepository {
   }
 
   async update(
+    id: string,
     title: string,
     description: string,
-    lotId: string | null,
     imageUri: string | null,
   ): Promise<void> {
     const token = await this.localPreferences.retrieveData(SESSION_STORAGE!);
+    const userId = await this.localPreferences.retrieveData(USER_ID_STORAGE!);
     const formData = new FormData();
+    formData.append("usuario_id", String(userId));
     formData.append("titulo", title);
     formData.append("description", description);
-
-    if (lotId) {
-      formData.append("lote_id", lotId);
-    }
 
     if (imageUri) {
       const filename = imageUri.split("/").pop() || "image.jpg";
@@ -87,7 +86,7 @@ export class NoteRepository implements INotesRepository {
       } as any);
     }
 
-    await axios.post(`${API_URL}/notes`, formData, {
+    await axios.patch(`${API_URL}/notes/${id}`, formData, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "multipart/form-data",
