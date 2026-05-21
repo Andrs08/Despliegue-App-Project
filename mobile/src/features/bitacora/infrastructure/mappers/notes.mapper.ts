@@ -9,8 +9,6 @@ export function mapServerToNavigationItem(serverItem: Note): BitacoraRouteItem {
     description: serverItem.description,
     imageUri: serverItem.imagen_url,
     lot: serverItem.lote_id ? serverItem.lote_id : "Sin Lote",
-    createdAt: serverItem.created_at
-      ? String(serverItem.created_at)
-      : String(serverItem.fecha),
+    createdAt: String(serverItem.fecha),
   };
 }

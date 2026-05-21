@@ -3,9 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import type { BitacoraRouteItem } from "../../../../core/navigation/app_navigator";
 import { GetNotesUseCase } from "../../application/get-notes.use-case";
 import { NoteRepository } from "../../infrastructure/persistence/notes.repository";
+import { GetLotesUseCase } from "@/src/features/lote/application/use-cases/get-lots.use-case";
+import { ApiLoteRepository } from "@/src/features/lote/infrastructure/persistence/api_lot.repository";
+import { LocalPreferencesAsyncStorage } from "@/src/core/LocalPreferencesAsyncStorage";
+import { Lote } from "@/src/features/lote/domain/entities/lot.entity";
 
 const notesRepository = new NoteRepository();
 const getNoteUseCase = new GetNotesUseCase(notesRepository);
+
+const localPrefs = LocalPreferencesAsyncStorage.getInstance();
+const loteRepository = new ApiLoteRepository(localPrefs);
+const getLotesUseCase = new GetLotesUseCase(loteRepository);
 
 type SortOption = "recent" | "old";
 
@@ -14,12 +22,11 @@ type UseBitacorasViewModelParams = {
   onAddBitacora: () => void;
 };
 
-const LOTES = ["Todos", "Lote 1", "Lote 2", "Lote 3", "Lote 4"];
-
 export function useBitacorasViewModel({
   onOpenBitacora,
   onAddBitacora,
 }: UseBitacorasViewModelParams) {
+  const [lotes, setLotes] = useState<Lote[]>([]);
   const [bitacoras, setBitacoras] = useState<BitacoraRouteItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -29,23 +36,37 @@ export function useBitacorasViewModel({
   const [selectedLot, setSelectedLot] = useState("Todos");
   const [sortOption, setSortOption] = useState<SortOption>("recent");
 
-  const filteredBitacoras = useMemo(() => {
-    const filtered =
-      selectedLot === "Todos"
-        ? bitacoras
-        : bitacoras.filter((item) => item.lot === selectedLot);
+  const mappedBitacoras = useMemo(() => {
+    return bitacoras.map((bitacora) => {
+      const loteEncontrado = lotes.find((l) => l.id === bitacora.lot);
 
-    return [...filtered].sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
+      return {
+        ...bitacora,
+        lot: loteEncontrado ? loteEncontrado.nombre : bitacora.lot,
+      };
+    });
+  }, [bitacoras, lotes]);
+
+  const filteredBitacoras = useMemo(() => {
+    let result = [...mappedBitacoras];
+
+    if (selectedLot !== "Todos") {
+      result = result.filter((b) => b.lot === selectedLot);
+    }
+
+    result.sort((a, b) => {
+      const dateA = a.createdAt || "";
+      const dateB = b.createdAt || "";
 
       if (sortOption === "recent") {
-        return dateB - dateA;
+        return dateB.localeCompare(dateA);
+      } else {
+        return dateA.localeCompare(dateB);
       }
-
-      return dateA - dateB;
     });
-  }, [selectedLot, sortOption]);
+
+    return result;
+  }, [bitacoras, selectedLot, sortOption]);
 
   const currentFilterLabel = `${
     selectedLot === "Todos"
@@ -53,22 +74,28 @@ export function useBitacorasViewModel({
       : `Mostrando ${selectedLot}`
   } · ${sortOption === "recent" ? "Más recientes" : "Más antiguas"}`;
 
-  const loadNotes = async () => {
+  const loadInitialData = async () => {
     try {
       setIsLoading(true);
-      const data = await getNoteUseCase.execute();
-      setBitacoras(data);
+      const [notesData, lotsData] = await Promise.all([
+        getNoteUseCase.execute(),
+        getLotesUseCase.execute(),
+      ]);
+      setBitacoras(notesData);
+      setLotes(lotsData);
     } catch (error: any) {
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
-        "Error al registrarse";
+        "Error al cargar datos";
       setApiError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadNotes();
+    loadInitialData();
   }, []);
 
   const handleToggleMenu = () => {
@@ -106,7 +133,9 @@ export function useBitacorasViewModel({
   };
 
   return {
-    lots: LOTES,
+    lotes,
+    isLoading,
+    apiError,
     showMenu,
     showLots,
     selectedLot,

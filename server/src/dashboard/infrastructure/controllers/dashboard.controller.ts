@@ -30,7 +30,6 @@ export class DashboardController {
     summary: 'Obtener resumen general del dashboard',
   })
   summary(@Req() req: any) {
-    console.log('USERID' + req.user.userId)
     return this.summaryUseCase.execute(req.userId);
   }
 

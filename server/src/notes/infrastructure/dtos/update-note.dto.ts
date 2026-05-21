@@ -31,5 +31,5 @@ export class UpdateNoteDto {
   fecha?: Date;
 
   @IsUUID()
-  usuario_id!: string;
+  usuario_id?: string;
 }
