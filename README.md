@@ -98,6 +98,11 @@ Para implementar una arquitectura limpia en el proyecto se aplicaron los concept
 
 Este principio fue aplicado tanto en el frontend desarrollado con React Native + Expo como en el backend construido con NestJS, organizando cada uno de los módulos de la aplicación en capas bien definidas.
 
+# Implementación de Caché
+
+Para garantizar una experiencia de usuario fluida y reducir la carga operativa sobre el servidor, se implementó una estrategia de almacenamiento en caché en el módulo del Dashboard dentro del aplicativo móvil. Debido a que este componente cuenta con abundante información que no requiere de actualizaciones constantes segundo a segundo, las consultas pesadas que genera este módulo se almacenan temporalmente en memoria tras la primera solicitud.
+
+Esta optimización permite la carga instantánea de los indicadores de la plantación, reduciendo considerablemente las peticiones repetitivas hacia los endpoints del servidor.
 
 # Implementación en el Backend (NestJS)
 
@@ -132,13 +137,6 @@ Controller → Use Case → Repository (Domain) → Repository Implementation (P
 ```
 
 La respuesta retorna posteriormente por el mismo flujo hasta llegar al cliente.
-
-# Implementación de Caché
-
-
-Para garantizar una experiencia de usuario fluida y reducir la carga operativa sobre el servidor, se implementó una estrategia de almacenamiento en caché en el módulo del Dashboard dentro del aplicativo móvil. Debido a que este componente cuenta con abundante información que no requiere de actualizaciones constantes segundo a segundo, las consultas pesadas que genera este módulo se almacenan temporalmente en memoria tras la primera solicitud.
-
-Esta optimización permite la carga instantánea de los indicadores de la plantación, reduciendo considerablemente las peticiones repetitivas hacia los endpoints del servidor.
 
 # Implementación en el Frontend (React Native + Expo)
 
