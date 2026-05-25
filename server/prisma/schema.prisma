@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model alerta {
+  id         String    @id @db.Uuid
+  lote_id    String    @db.Uuid
+  tipo       String?   @db.VarChar(30)
+  nivel      String?   @db.VarChar(20)
+  mensaje    String?
+  resuelta   Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+
+  lote lote @relation(fields: [lote_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bitacora {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  lote_id     String?   @db.Uuid
+  imagen_url  String?
+  titulo      String
+  description String
+  fecha       DateTime  @db.Date
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  usuario_id  String    @db.Uuid
+
+  lote    lote?   @relation(fields: [lote_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  usuario usuario @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model enfermedad {
+  id                 Int     @id @default(autoincrement())
+  nombre             String? @db.VarChar(100)
+  tratamiento        String?
+  dosis_por_hectarea Float?
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model etapa {
+  id             Int              @id
+  nombre         String?          @db.VarChar(50)
+  lote           lote[]
+  registro_etapa registro_etapa[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model lote {
+  id              String           @id @db.Uuid
+  usuario_id      String?          @db.Uuid
+  nombre          String?          @db.VarChar(100)
+  hectareas       Float?
+  temperatura_min Float?
+  temperatura_max Float?
+  fecha_inicio    DateTime?        @db.Date
+  numero_plantas  Int?
+  created_at      DateTime?        @default(now()) @db.Timestamp(6)
+  etapa_actual_id Int?
+
+  alerta         alerta[]
+  bitacora       bitacora[]
+  registro_etapa registro_etapa[]
+
+  etapa   etapa?   @relation(fields: [etapa_actual_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuario usuario? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model registro_etapa {
+  id         String    @id @db.Uuid
+  lote_id    String?   @db.Uuid
+  etapa_id   Int?
+  datos      Json?
+  fecha      DateTime? @db.Date
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+
+  etapa etapa? @relation(fields: [etapa_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  lote  lote?  @relation(fields: [lote_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sync_queue {
+  id         String    @id @db.Uuid
+  entidad    String?   @db.VarChar(50)
+  entidad_id String?   @db.Uuid
+  operacion  String?   @db.VarChar(10)
+  payload    Json?
+  estado     String?   @db.VarChar(20)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model usuario {
+  id            String     @id @db.Uuid
+  name          String     @db.VarChar(100)
+  email         String     @unique @db.VarChar(100)
+  password_hash String     @db.VarChar(255)
+  foto_url      String?
+  created_at    DateTime?  @default(now()) @db.Timestamp(6)
+
+  bitacora bitacora[]
+  lote     lote[]
+}

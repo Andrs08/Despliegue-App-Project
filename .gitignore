@@ -1,15 +1,31 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# Dependencies
 node_modules/
 
-# Expo
+.vscode/
+
+# Server
+server/dist/
+server/build/
+server/coverage/
+server/.nyc_output/
+server/generated/prisma/
+
+# Mobile / Expo
 .expo/
 dist/
 web-build/
 expo-env.d.ts
+app-example/
+.metro-health-check*
 
-# Native
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+mobile/expo-env.d.ts
+mobile/app-example/
+mobile/.metro-health-check*
+
+# Native / Mobile credentials
 *.orig.*
 *.jks
 *.p8
@@ -17,22 +33,54 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
-.metro-health-check*
+# Environment variables
+.env
+.env.local
+.env*.local
+server/.env
+mobile/.env
 
-# debug
+# Logs
+logs/
+*.log
 npm-debug.*
+npm-debug.log*
 yarn-debug.*
+yarn-debug.log*
 yarn-error.*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
 
-# macOS
+# OS / Editor
 .DS_Store
 *.pem
 
-# local env files
-.env*.local
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
 
-# typescript
-*.tsbuildinfo
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
-app-example
+# Runtime files
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary files
+.temp/
+.tmp/
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# TypeScript
+*.tsbuildinfo 
