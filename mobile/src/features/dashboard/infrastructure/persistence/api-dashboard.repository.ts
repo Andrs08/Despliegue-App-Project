@@ -7,12 +7,13 @@ import {
   ActiveAlerts,
   Production,
   DashboardData,
+  DashboardCache,
 } from "../../domain/interfaces/dashboard.interfaces";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const CACHE_KEY = process.env.EXPO_PUBLIC_LOCAL_CACHE_KEY;
 const SESSION_TOKEN = process.env.EXPO_PUBLIC_LOCAL_TOKEN;
-const SESSION_NAME = process.env.EXPO_PUBLIC_LOCAL_USER_NAME
+const SESSION_NAME = process.env.EXPO_PUBLIC_LOCAL_USER_NAME;
 
 export class ApiDashboardRepository implements DashboardRepository {
   constructor(private storage: ILocalPreferences) {}
@@ -58,12 +59,23 @@ export class ApiDashboardRepository implements DashboardRepository {
     return this.get<Production[]>("/dashboard/production");
   }
 
-  async getCachedDashboard(): Promise<DashboardData | null> {
-    return this.storage.retrieveData<DashboardData>(CACHE_KEY!);
+  async getCachedDashboard(): Promise<DashboardCache | null> {
+    const envelope = await this.storage.retrieveData<DashboardCache>(
+      CACHE_KEY!
+    );
+    return envelope ?? null;
   }
 
   async cacheDashboard(data: DashboardData): Promise<void> {
-    return this.storage.storeData<DashboardData>(CACHE_KEY!, data);
+    const envelope: DashboardCache = {
+      data,
+      cachedAt: Date.now(),
+    };
+    await this.storage.storeData<DashboardCache>(CACHE_KEY!, envelope);
+  }
+
+  async invalidateCache(): Promise<void> {
+    await this.storage.storeData<null>(CACHE_KEY!, null);
   }
 
   async getUserName(): Promise<string | null> {

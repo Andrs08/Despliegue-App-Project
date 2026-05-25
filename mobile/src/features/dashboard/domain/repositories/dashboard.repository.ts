@@ -5,6 +5,7 @@ import {
   ActiveAlerts,
   Production,
   DashboardData,
+  DashboardCache,
 } from "../interfaces/dashboard.interfaces";
 
 export interface DashboardRepository {
@@ -13,9 +14,8 @@ export interface DashboardRepository {
   getStageDistribution(): Promise<StageDistribution[]>;
   getActiveAlerts(): Promise<ActiveAlerts>;
   getProduction(): Promise<Production[]>;
-
-  getCachedDashboard(): Promise<DashboardData | null>;
+  getCachedDashboard(): Promise<DashboardCache | null>;
   cacheDashboard(data: DashboardData): Promise<void>;
-
+  invalidateCache(): Promise<void>;
   getUserName(): Promise<string | null>;
 }

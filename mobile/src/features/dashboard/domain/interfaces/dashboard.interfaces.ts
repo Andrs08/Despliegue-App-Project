@@ -41,3 +41,8 @@ export interface DashboardData {
   activeAlerts: ActiveAlerts;
   production: Production[];
 }
+
+export interface DashboardCache {
+  data: DashboardData;
+  cachedAt: number;
+}

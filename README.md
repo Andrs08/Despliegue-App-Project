@@ -176,11 +176,50 @@ El flujo completo entre frontend y backend es el siguiente:
 10. El caso de uso retorna el resultado al `ViewModel`.
 11. El `ViewModel` actualiza el estado de la interfaz y la pantalla (`Page`) se renderiza nuevamente mostrando los cambios.
 
-# Implementación de Caché
 
-Para garantizar una experiencia de usuario fluida y reducir la carga operativa sobre el servidor, se implementó una estrategia de almacenamiento en caché en el módulo del Dashboard dentro del aplicativo móvil. Debido a que este componente cuenta con abundante información que no requiere de actualizaciones constantes segundo a segundo, las consultas pesadas que genera este módulo se almacenan temporalmente en memoria tras la primera solicitud.
-
-Esta optimización permite la carga instantánea de los indicadores de la plantación, reduciendo considerablemente las peticiones repetitivas hacia los endpoints del servidor.
+## Implementación de Caché con AsyncStorage
+ 
+La caché local se implementó en el módulo del dashboard utilizando `AsyncStorage`, el mecanismo de almacenamiento clave-valor asíncrono de React Native. El objetivo es mostrar datos de forma inmediata al usuario y reducir las peticiones HTTP innecesarias. 
+ 
+### Estrategia: Stale-While-Revalidate + TTL
+ 
+Se combinaron dos patrones:
+ 
+- **Stale-While-Revalidate (SWR):** Si existe caché, se muestra inmediatamente mientras en paralelo se realiza la petición HTTP para actualizar los datos de forma silenciosa.
+- **Time-To-Live (TTL):** La caché almacena el timestamp de escritura. Si supera los 5 minutos, se marca como `isStale: true` y la UI puede notificar al usuario que los datos podrían no estar al día.
+### Estructura del caché
+ 
+Los datos no se persisten directamente, sino que estan envueltos en un objeto que incluye el timestamp:
+ 
+```typescript
+export interface DashboardCache {
+  data: DashboardData;
+  cachedAt: number; // Date.now()
+}
+```
+ 
+### Responsabilidades por capa
+ 
+| Capa | Archivo | Responsabilidad |
+|------|---------|----------------|
+| Dominio | `dashboard.repository.ts` | Define el contrato: `getCachedDashboard()`, `cacheDashboard()`, `invalidateCache()` |
+| Infraestructura | `api-dashboard.repository.ts` | Única capa que accede a AsyncStorage. Lee, escribe e invalida el envelope con timestamp |
+| Aplicación | `get-dashboard.use-case.ts` | Orquesta la estrategia SWR + TTL y decide cuándo usar caché o HTTP |
+| UI | `use-dasboard_viewmodel.ts` | Gestiona los estados `loading`, `refreshing` e `isStale` en la interfaz |
+ 
+### Flujo de ejecución
+ 
+```
+1. ViewModel invoca GetDashboardUseCase.execute()
+2. Caso de uso lee la caché
+   ├── Existe → onCacheHit(): UI muestra datos inmediatamente
+   └── No existe → UI permanece en loading
+3. En paralelo, se ejecutan las 5 peticiones HTTP
+   ├── Éxito → cacheDashboard() → onFresh(): UI actualiza datos
+   └── Fallo + había caché → error silenciado (usuario ya ve algo)
+       Fallo + sin caché   → onError(): UI muestra error
+```
+ 
 
 # Demostración
 
