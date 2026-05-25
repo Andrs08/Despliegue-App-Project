@@ -4,7 +4,6 @@
 
 La aplicación consiste en una plataforma móvil desarrollada para apoyar a los agricultores de banano en la gestión y monitoreo de sus cultivos a lo largo de todas las etapas del ciclo de vida de la plantación. Para ello, el sistema permite registrar información de los lotes de banano, almacenar datos relevantes de cada etapa del cultivo y generar alertas o recomendaciones automáticas que ayuden al agricultor a tomar decisiones oportunas para mejorar el estado y productividad de la plantación. Esta aplicación está enfocada principalmente en el monitoreo agrícola y la gestión de información, permitiendo que los agricultores lleven un control organizado de sus cultivos y puedan intervenir rápidamente ante posibles problemas relacionados con la fertilización, riego, temperatura, enfermedades, productividad o condiciones inadecuadas para el desarrollo del banano.
 
-
 ## Planteamiento del problema
 
 En muchos cultivos agrícolas, especialmente en pequeñas y medianas plantaciones de banano, el seguimiento de las actividades y condiciones del cultivo suele realizarse de forma manual, desorganizada y basada únicamente en la observación y en la experiencia de los agricultores. Lo que genera problemas como:
@@ -15,7 +14,6 @@ En muchos cultivos agrícolas, especialmente en pequeñas y medianas plantacione
 - Retrasos en la toma de decisiones agrícolas para solucionar problemáticas.
 
 La aplicación busca solucionar estas problemáticas mediante una herramienta móvil que centraliza la información de los cultivos, automatiza alertas, y facilita el monitoreo constante de los lotes de banano.
-
 
 ## Funcionalidades principales
 
@@ -98,13 +96,7 @@ Para implementar una arquitectura limpia en el proyecto se aplicaron los concept
 
 Este principio fue aplicado tanto en el frontend desarrollado con React Native + Expo como en el backend construido con NestJS, organizando cada uno de los módulos de la aplicación en capas bien definidas.
 
-# Implementación de Caché
-
-Para garantizar una experiencia de usuario fluida y reducir la carga operativa sobre el servidor, se implementó una estrategia de almacenamiento en caché en el módulo del Dashboard dentro del aplicativo móvil. Debido a que este componente cuenta con abundante información que no requiere de actualizaciones constantes segundo a segundo, las consultas pesadas que genera este módulo se almacenan temporalmente en memoria tras la primera solicitud.
-
-Esta optimización permite la carga instantánea de los indicadores de la plantación, reduciendo considerablemente las peticiones repetitivas hacia los endpoints del servidor.
-
-# Implementación en el Backend (NestJS)
+## Implementación en el Backend (NestJS)
 
 El backend sigue la estructura de capas de la siguiente manera:
 
@@ -168,8 +160,7 @@ Page (UI) → ViewModel → Use Case → Repository Interface → Repository Imp
 
 La respuesta retorna posteriormente hasta el `ViewModel`, que actualiza el estado observado por la interfaz gráfica.
 
-
-# Flujo de datos completo (End-to-End)
+## Flujo de datos completo (End-to-End)
 
 El flujo completo entre frontend y backend es el siguiente:
 
@@ -185,5 +176,12 @@ El flujo completo entre frontend y backend es el siguiente:
 10. El caso de uso retorna el resultado al `ViewModel`.
 11. El `ViewModel` actualiza el estado de la interfaz y la pantalla (`Page`) se renderiza nuevamente mostrando los cambios.
 
+# Implementación de Caché
+
+Para garantizar una experiencia de usuario fluida y reducir la carga operativa sobre el servidor, se implementó una estrategia de almacenamiento en caché en el módulo del Dashboard dentro del aplicativo móvil. Debido a que este componente cuenta con abundante información que no requiere de actualizaciones constantes segundo a segundo, las consultas pesadas que genera este módulo se almacenan temporalmente en memoria tras la primera solicitud.
+
+Esta optimización permite la carga instantánea de los indicadores de la plantación, reduciendo considerablemente las peticiones repetitivas hacia los endpoints del servidor.
+
 # Demostración
+
 Enlace a la demostración: https://youtu.be/JVnDhhHfvCw
