@@ -4,13 +4,14 @@ import { IMailService } from '../../application/use-cases/send-reset-code.use-ca
 
 @Injectable()
 export class AppMailerService implements IMailService {
-  constructor(private readonly mailer: MailerService) {}
+  constructor(private readonly mailer: MailerService) { }
 
   async sendResetCode(email: string, code: string): Promise<void> {
-    await this.mailer.sendMail({
-      to: email,
-      subject: 'BanaEye — Código de recuperación de contraseña',
-      html: `
+    try {
+      await this.mailer.sendMail({
+        to: email,
+        subject: 'BanaEye — Código de recuperación de contraseña',
+        html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: auto;">
           <h2 style="color: #5D7B3D;">Recupera tu contraseña</h2>
           <p>Usa el siguiente código para restablecer tu contraseña. 
@@ -31,6 +32,9 @@ export class AppMailerService implements IMailService {
           </p>
         </div>
       `,
-    });
+      });
+    } catch (error) {
+      console.error('Error enviando correo de recuperación:', error);
+    }
   }
 }
