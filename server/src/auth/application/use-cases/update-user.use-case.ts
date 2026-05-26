@@ -3,6 +3,7 @@ import { User } from 'src/auth/domain/entities/user.entity';
 import { UserRepository } from 'src/auth/domain/repositories/user.repository';
 import { UpdateUserDto } from 'src/auth/infrastructure/dtos/update-user.dto';
 import { IImageStorageService } from 'src/shared/domain/repositories/image.repository.interface';
+import * as bcrypt from 'bcrypt';
 
 export class UpdateUserUseCase {
   constructor(
@@ -23,10 +24,12 @@ export class UpdateUserUseCase {
       finalImageUrl = await this.fileStorage.uploadImage(file, 'usuarios');
     }
 
+    const password = await bcrypt.hash(data.password, 10);
+
     const updatedUser: Partial<User> = {
       name: data.name,
       email: data.email,
-      passwordHash: data.password,
+      passwordHash: password,
       foto_url: finalImageUrl ?? undefined,
     };
     return await this.userRepo.update(id, updatedUser);

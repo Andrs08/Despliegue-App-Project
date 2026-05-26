@@ -42,4 +42,21 @@ export class AuthRepository implements IAuthRepository {
     });
     return response.data;
   }
+
+  async sendResetCode(email: string): Promise<void> {
+    await axios.post(`${API_URL}/auth/forgot-password`, { email });
+  }
+ 
+  async verifyResetCode(email: string, code: string): Promise<void> {
+    await axios.post(`${API_URL}/auth/verify-reset-code`, { email, code });
+  }
+ 
+  async resetPassword(
+    email: string,
+    code: string,
+    newPassword: string,
+  ): Promise<void> {
+    await axios.post(`${API_URL}/auth/reset-password`, { email, code, newPassword });
+  }
+
 }
