@@ -24,7 +24,6 @@ import type { RootStackParamList } from "../../../../core/navigation/app_navigat
 import { AppHeader } from "../../../../shared/ui/app_header";
 import { BottomNavigationBar } from "../../../../shared/ui/bottom_navigation_bar";
 import { useProfileViewModel } from "../viewmodels/profile.viewmodel";
-import { LocalPreferencesAsyncStorage } from "../../../../core/LocalPreferencesAsyncStorage";
 
 export function ProfilePage() {
   const { width, height } = useWindowDimensions();
@@ -44,13 +43,11 @@ export function ProfilePage() {
     AlfaSlabOne_400Regular,
   });
 
-  const { userId, name, email, fotoUrl, loading, error } = useProfileViewModel();
+  // `logout` viene del viewmodel — delega al LogoutUseCase → AuthRepository.clearSession()
+  const { userId, name, email, fotoUrl, loading, error, logout } = useProfileViewModel();
 
   const handleLogout = async () => {
-    const storage = LocalPreferencesAsyncStorage.getInstance();
-    await storage.storeData(process.env.EXPO_PUBLIC_LOCAL_TOKEN!, null);
-    await storage.storeData(process.env.EXPO_PUBLIC_LOCAL_USER_ID!, null);
-    await storage.storeData(process.env.EXPO_PUBLIC_LOCAL_USER_NAME!, null);
+    await logout();
     navigation.reset({ index: 0, routes: [{ name: "Login" }] });
   };
 

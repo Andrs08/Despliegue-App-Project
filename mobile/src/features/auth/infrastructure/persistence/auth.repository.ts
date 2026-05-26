@@ -28,6 +28,20 @@ export class AuthRepository implements IAuthRepository {
     await this.localPreferences.storeData(SESSION_STORAGE!, user.token);
     await this.localPreferences.storeData(USER_ID_STORAGE!, user.id);
     await this.localPreferences.storeData(USER_NAME_STORAGE!, user.name);
+    console.log('Sesión guardada: token, userId y userName almacenados en el almacenamiento local');
+    console.log('Valor de SESSION_STORAGE después de saveSession:', await this.localPreferences.retrieveData(SESSION_STORAGE!));
+    console.log('Valor de USER_ID_STORAGE después de saveSession:', await this.localPreferences.retrieveData(USER_ID_STORAGE!));
+    console.log('Valor de USER_NAME_STORAGE después de saveSession:', await this.localPreferences.retrieveData(USER_NAME_STORAGE!));
+  }
+
+  async clearSession(): Promise<void> {
+    await this.localPreferences.removeData(SESSION_STORAGE!);
+    await this.localPreferences.removeData(USER_ID_STORAGE!);
+    await this.localPreferences.removeData(USER_NAME_STORAGE!);
+    console.log('Sesión cerrada: token, userId y userName eliminados del almacenamiento local');
+    console.log('Valor de SESSION_STORAGE después de clearSession:', await this.localPreferences.retrieveData(SESSION_STORAGE!));
+    console.log('Valor de USER_ID_STORAGE después de clearSession:', await this.localPreferences.retrieveData(USER_ID_STORAGE!));
+    console.log('Valor de USER_NAME_STORAGE después de clearSession:', await this.localPreferences.retrieveData(USER_NAME_STORAGE!));
   }
 
   async register(
@@ -46,11 +60,11 @@ export class AuthRepository implements IAuthRepository {
   async sendResetCode(email: string): Promise<void> {
     await axios.post(`${API_URL}/auth/forgot-password`, { email });
   }
- 
+
   async verifyResetCode(email: string, code: string): Promise<void> {
     await axios.post(`${API_URL}/auth/verify-reset-code`, { email, code });
   }
- 
+
   async resetPassword(
     email: string,
     code: string,

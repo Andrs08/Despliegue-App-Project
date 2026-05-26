@@ -1,7 +1,7 @@
 export class GetAlertsUseCase {
   constructor(private repository: any) {}
 
-  async execute() {
-    return this.repository.findAll();
+  async execute(userId: string) {
+    return this.repository.findAll(userId);
   }
 }

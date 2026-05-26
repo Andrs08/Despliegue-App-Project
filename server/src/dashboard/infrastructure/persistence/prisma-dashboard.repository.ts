@@ -12,6 +12,7 @@ export class PrismaDashboardRepository implements DashboardRepository {
   constructor(private prisma: PrismaService) {}
 
   async getGeneralSummary(userId: string): Promise<GeneralSummary> {
+    console.log('Obteniendo resumen general para usuario:', userId);
     const total_lotes = await this.prisma.lote.count({
       where: {
         usuario_id: userId,

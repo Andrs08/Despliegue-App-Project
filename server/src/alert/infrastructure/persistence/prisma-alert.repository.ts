@@ -4,9 +4,10 @@ import { AlertRepository } from 'src/alert/domain/repositories/alert.repository'
 import { Alert } from 'src/alert/domain/entities/alert.entity';
 import { AlertMapper } from '../mappers/alert.mapper';
 
+
 @Injectable()
 export class PrismaAlertRepository implements AlertRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(alerta: Alert): Promise<Alert> {
     const created = await this.prisma.alerta.create({
@@ -22,19 +23,27 @@ export class PrismaAlertRepository implements AlertRepository {
     return AlertMapper.toDomain(created);
   }
 
-  async findAll(): Promise<Alert[]> {
+  async findAll(userId: string): Promise<Alert[]> {
     const alertas = await this.prisma.alerta.findMany({
       orderBy: {
         created_at: 'desc',
       },
+      where: {
+        lote: {
+          usuario_id: userId,
+        },
+      },
     });
     return alertas.map(AlertMapper.toDomain);
   }
-
-  async findByLote(loteId: string): Promise<Alert[]> {
+  
+  async findByLote(loteId: string, userId: string): Promise<Alert[]> {
     const alertas = await this.prisma.alerta.findMany({
       where: {
         lote_id: loteId,
+        lote: {
+          usuario_id: userId,
+        }
       },
       orderBy: {
         created_at: 'desc',
