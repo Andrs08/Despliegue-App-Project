@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { CreateAlertUseCase } from '../../application/use-cases/create-alert.use-case';
 import { GetAlertsUseCase } from '../../application/use-cases/get-alerts.use-case';
 import { GetLotAlertsUseCase } from '../../application/use-cases/get-lot-alerts.use-case';
@@ -22,16 +22,19 @@ export class AlertController {
   }
 
   @Get()
-  findAll() {
-    return this.getAlertsUseCase.execute();
+  findAll(@Req() req: any) {
+    const userId = req.user.userId;
+    return this.getAlertsUseCase.execute(userId);
   }
 
   @Get('lot/:loteId')
   findByLote(
     @Param('loteId')
     loteId: string,
+    @Req() req: any
   ) {
-    return this.getLotAlertsUseCase.execute(loteId);
+    const userId = req.user.userId;
+    return this.getLotAlertsUseCase.execute(loteId, userId);
   }
 
   @Put(':id/read')

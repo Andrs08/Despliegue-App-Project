@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class PrismaUserRepository implements UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.prisma.usuario.findUnique({ where: { email } });
 
@@ -68,4 +68,31 @@ export class PrismaUserRepository implements UserRepository {
       updated.foto_url ?? undefined,
     );
   }
+
+  async saveResetCode(
+    email: string,
+    code: string,
+    expires_at: Date,
+  ): Promise<void> {
+    await this.prisma.passwordResetCode.upsert({
+      where: { email },
+      update: { code, expires_at },
+      create: { email, code, expires_at },
+    });
+  }
+
+  async findResetCode(
+    email: string,
+  ): Promise<{ code: string; expires_at: Date } | null> {
+    const record = await this.prisma.passwordResetCode.findUnique({
+      where: { email },
+    });
+    if (!record) return null;
+    return { code: record.code, expires_at: record.expires_at };
+  }
+
+  async clearResetCode(email: string): Promise<void> {
+    await this.prisma.passwordResetCode.deleteMany({ where: { email } });
+  }
+
 }

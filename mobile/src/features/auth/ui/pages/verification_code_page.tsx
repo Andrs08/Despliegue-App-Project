@@ -1,6 +1,6 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import {
-  Alert,
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -22,11 +22,9 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../../../../core/navigation/app_navigator";
 import { AppHeader } from "../../../../shared/ui/app_header";
+import { useVerificationCodeViewModel } from "../viewmodels/verification_code_viewmodel";
 
-type VerificationCodeRouteProp = RouteProp<
-  RootStackParamList,
-  "VerificationCode"
->;
+type VerificationCodeRouteProp = RouteProp<RootStackParamList, "VerificationCode">;
 
 export function VerificationCodePage() {
   const { width, height } = useWindowDimensions();
@@ -43,16 +41,8 @@ export function VerificationCodePage() {
   const verifyButtonMarginBottom = isSmallPhone ? 22 : 28;
 
   const route = useRoute<VerificationCodeRouteProp>();
-
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-
-  const email = route.params?.email ?? "tu correo electrónico";
-
-  const [code, setCode] = useState(["", "", "", "", "", ""]);
-  const [error, setError] = useState("");
-
-  const inputRefs = useRef<Array<TextInput | null>>([]);
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const email = route.params?.email ?? "";
 
   const [fontsLoaded] = useFonts({
     GravitasOne_400Regular,
@@ -60,62 +50,21 @@ export function VerificationCodePage() {
     AlfaSlabOne_400Regular,
   });
 
+  const {
+    code, codeError, isLoading, apiError, resendSuccess,
+    inputRefs, handleCodeChange, handleKeyPress,
+    handleVerifyCode, handleResendCode,
+  } = useVerificationCodeViewModel(email, () => {
+    navigation.navigate("ResetPassword", { email, code: code.join("") });
+  });
+
   const maskEmail = (currentEmail: string) => {
     const [name, domain] = currentEmail.split("@");
-
-    if (!name || !domain) {
-      return currentEmail;
-    }
-
-    const visiblePart = name.slice(0, 2);
-    return `${visiblePart}****@${domain}`;
+    if (!name || !domain) return currentEmail;
+    return `${name.slice(0, 2)}****@${domain}`;
   };
 
-  const handleCodeChange = (value: string, index: number) => {
-    const cleanValue = value.replace(/[^0-9]/g, "").slice(0, 1);
-
-    const newCode = [...code];
-    newCode[index] = cleanValue;
-    setCode(newCode);
-
-    if (error) {
-      setError("");
-    }
-
-    if (cleanValue && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleKeyPress = (key: string, index: number) => {
-    if (key === "Backspace" && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleVerifyCode = () => {
-    const finalCode = code.join("");
-
-    if (finalCode.length < 6) {
-      setError("Ingresa el código de 6 dígitos");
-      return;
-    }
-
-    navigation.navigate("ResetPassword", {
-      email,
-    });
-  };
-
-  const handleResendCode = () => {
-    Alert.alert(
-      "Código reenviado",
-      "Te enviamos un nuevo código de verificación."
-    );
-  };
-
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -123,69 +72,35 @@ export function VerificationCodePage() {
         style={styles.keyboardView}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.container}>
             <AppHeader imageHeight={headerHeight} />
 
-            <View
-              style={[
-                styles.card,
-                {
-                  paddingHorizontal: horizontalPadding,
-                  paddingTop: cardPaddingTop,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.title,
-                  {
-                    fontSize: titleFontSize,
-                    lineHeight: titleFontSize + 4,
-                  },
-                ]}
-              >
+            <View style={[styles.card, { paddingHorizontal: horizontalPadding, paddingTop: cardPaddingTop }]}>
+              <Text style={[styles.title, { fontSize: titleFontSize, lineHeight: titleFontSize + 4 }]}>
                 Verifica tu correo
               </Text>
 
-              <Text
-                style={[
-                  styles.subtitle,
-                  {
-                    marginBottom: subtitleMarginBottom,
-                  },
-                ]}
-              >
+              <Text style={[styles.subtitle, { marginBottom: subtitleMarginBottom }]}>
                 Hemos enviado un código de verificación a{"\n"}
                 <Text style={styles.emailText}>{maskEmail(email)}</Text>
               </Text>
 
               <View style={styles.codeBox}>
                 <Text style={styles.codeLabel}>Código de verificación</Text>
-
                 <View style={styles.codeInputsContainer}>
                   {code.map((digit, index) => (
                     <TextInput
                       key={index}
-                      ref={(ref) => {
-                        inputRefs.current[index] = ref;
-                      }}
+                      ref={(ref) => { inputRefs.current[index] = ref; }}
                       style={[
                         styles.codeInput,
-                        {
-                          width: codeInputWidth,
-                          height: codeInputHeight,
-                        },
-                        error ? styles.codeInputError : null,
+                        { width: codeInputWidth, height: codeInputHeight },
+                        codeError || apiError ? styles.codeInputError : null,
                       ]}
                       value={digit}
                       onChangeText={(value) => handleCodeChange(value, index)}
-                      onKeyPress={({ nativeEvent }) =>
-                        handleKeyPress(nativeEvent.key, index)
-                      }
+                      onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
                       keyboardType="number-pad"
                       maxLength={1}
                       textAlign="center"
@@ -194,26 +109,30 @@ export function VerificationCodePage() {
                 </View>
               </View>
 
-              {error ? <Text style={styles.errorText}>{error}</Text> : null}
+              {codeError ? <Text style={styles.errorText}>{codeError}</Text> : null}
+              {apiError ? <Text style={styles.errorText}>{apiError}</Text> : null}
+              {resendSuccess ? (
+                <Text style={styles.successText}>¡Código reenviado correctamente!</Text>
+              ) : null}
 
               <TouchableOpacity
-                style={[
-                  styles.verifyButton,
-                  {
-                    marginTop: verifyButtonMarginTop,
-                    marginBottom: verifyButtonMarginBottom,
-                  },
-                ]}
+                style={[styles.verifyButton, { marginTop: verifyButtonMarginTop, marginBottom: verifyButtonMarginBottom }]}
                 activeOpacity={0.8}
                 onPress={handleVerifyCode}
+                disabled={isLoading}
               >
-                <Text style={styles.verifyButtonText}>Verificar código</Text>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color={COLORS.background} />
+                ) : (
+                  <Text style={styles.verifyButtonText}>Verificar código</Text>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.resendButton}
                 activeOpacity={0.8}
                 onPress={handleResendCode}
+                disabled={isLoading}
               >
                 <Text style={styles.resendButtonText}>Reenviar código</Text>
               </TouchableOpacity>
@@ -226,119 +145,34 @@ export function VerificationCodePage() {
 }
 
 const COLORS = {
-  green: "#5D7B3D",
-  background: "#FFFFF1",
-  gray: "#959595",
-  black: "#000000",
-  pink: "#E4568B",
-  darkBackground: "#202020",
-  error: "#C94C4C",
+  green: "#5D7B3D", background: "#FFFFF1", gray: "#959595",
+  black: "#000000", pink: "#E4568B", error: "#C94C4C", success: "#5D7B3D",
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  keyboardView: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    backgroundColor: COLORS.background,
-  },
-  container: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: COLORS.background,
-    overflow: "hidden",
-  },
+  safeArea: { flex: 1, backgroundColor: COLORS.background },
+  keyboardView: { flex: 1, backgroundColor: COLORS.background },
+  scrollContent: { flexGrow: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, width: "100%", backgroundColor: COLORS.background, overflow: "hidden" },
   card: {
-    flexGrow: 1,
-    marginTop: -28,
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 34,
-    borderTopRightRadius: 34,
-    paddingBottom: 50,
-    alignItems: "center",
+    flexGrow: 1, marginTop: -28, backgroundColor: COLORS.background,
+    borderTopLeftRadius: 34, borderTopRightRadius: 34, paddingBottom: 50, alignItems: "center",
   },
-  title: {
-    fontFamily: "MaidenOrange_400Regular",
-    color: COLORS.green,
-    textAlign: "center",
-    marginBottom: 28,
-  },
-  subtitle: {
-    fontFamily: "MaidenOrange_400Regular",
-    fontSize: 16,
-    lineHeight: 19,
-    color: COLORS.gray,
-    textAlign: "center",
-  },
-  emailText: {
-    color: COLORS.green,
-  },
-  codeBox: {
-    width: "100%",
-    marginBottom: 12,
-  },
-  codeLabel: {
-    fontFamily: "MaidenOrange_400Regular",
-    color: COLORS.green,
-    fontSize: 13,
-    lineHeight: 16,
-    marginBottom: 8,
-  },
-  codeInputsContainer: {
-    width: "100%",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
+  title: { fontFamily: "MaidenOrange_400Regular", color: COLORS.green, textAlign: "center", marginBottom: 28 },
+  subtitle: { fontFamily: "MaidenOrange_400Regular", fontSize: 16, lineHeight: 19, color: COLORS.gray, textAlign: "center" },
+  emailText: { color: COLORS.green },
+  codeBox: { width: "100%", marginBottom: 12 },
+  codeLabel: { fontFamily: "MaidenOrange_400Regular", color: COLORS.green, fontSize: 13, lineHeight: 16, marginBottom: 8 },
+  codeInputsContainer: { width: "100%", flexDirection: "row", justifyContent: "space-between" },
   codeInput: {
-    borderWidth: 1.4,
-    borderColor: COLORS.green,
-    borderRadius: 8,
-    color: COLORS.black,
-    fontFamily: "AlfaSlabOne_400Regular",
-    fontSize: 17,
-    backgroundColor: COLORS.background,
+    borderWidth: 1.4, borderColor: COLORS.green, borderRadius: 8,
+    color: COLORS.black, fontFamily: "AlfaSlabOne_400Regular", fontSize: 17, backgroundColor: COLORS.background,
   },
-  codeInputError: {
-    borderColor: COLORS.error,
-  },
-  errorText: {
-    alignSelf: "flex-start",
-    fontFamily: "MaidenOrange_400Regular",
-    color: COLORS.error,
-    fontSize: 13,
-    lineHeight: 16,
-    marginTop: 4,
-    marginLeft: 4,
-  },
-  verifyButton: {
-    backgroundColor: COLORS.pink,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-    borderRadius: 22,
-  },
-  verifyButtonText: {
-    fontFamily: "AlfaSlabOne_400Regular",
-    color: COLORS.background,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  resendButton: {
-    borderWidth: 1.5,
-    borderColor: COLORS.pink,
-    paddingHorizontal: 22,
-    paddingVertical: 9,
-    borderRadius: 22,
-  },
-  resendButtonText: {
-    fontFamily: "AlfaSlabOne_400Regular",
-    color: COLORS.pink,
-    fontSize: 12,
-    lineHeight: 17,
-  },
+  codeInputError: { borderColor: COLORS.error },
+  errorText: { alignSelf: "flex-start", fontFamily: "MaidenOrange_400Regular", color: COLORS.error, fontSize: 13, lineHeight: 16, marginTop: 4, marginLeft: 4 },
+  successText: { fontFamily: "MaidenOrange_400Regular", color: COLORS.success, fontSize: 13, lineHeight: 16, marginTop: 4 },
+  verifyButton: { backgroundColor: COLORS.pink, paddingHorizontal: 22, paddingVertical: 10, borderRadius: 22 },
+  verifyButtonText: { fontFamily: "AlfaSlabOne_400Regular", color: COLORS.background, fontSize: 13, lineHeight: 18 },
+  resendButton: { borderWidth: 1.5, borderColor: COLORS.pink, paddingHorizontal: 22, paddingVertical: 9, borderRadius: 22 },
+  resendButtonText: { fontFamily: "AlfaSlabOne_400Regular", color: COLORS.pink, fontSize: 12, lineHeight: 17 },
 });

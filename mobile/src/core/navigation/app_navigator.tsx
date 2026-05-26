@@ -35,6 +35,7 @@ export type BitacoraRouteItem = {
 };
 
 export type UserProfileRouteItem = {
+  id: string;
   fullName: string;
   email: string;
   imageUri?: string | null;
@@ -74,6 +75,7 @@ export type RootStackParamList = {
 
   ResetPassword: {
     email: string;
+    code: string;
   };
 
   Dashboard: undefined;

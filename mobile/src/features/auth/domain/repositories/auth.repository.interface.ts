@@ -8,4 +8,8 @@ export interface IAuthRepository {
     password: string,
   ): Promise<AuthenticatedUser>;
   saveSession(user: AuthenticatedUser): Promise<void>;
+  clearSession(): Promise<void>;
+  sendResetCode(email: string): Promise<void>;
+  verifyResetCode(email: string, code: string): Promise<void>;
+  resetPassword(email: string, code: string, newPassword: string): Promise<void>;
 }
