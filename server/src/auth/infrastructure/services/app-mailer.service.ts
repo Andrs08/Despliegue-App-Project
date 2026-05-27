@@ -1,16 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
-import { IMailService } from '../../application/use-cases/send-reset-code.use-case';
+import { BrevoClient } from '@getbrevo/brevo';
 
 @Injectable()
-export class AppMailerService implements IMailService {
-  constructor(private readonly mailer: MailerService) {}
+export class AppMailerService {
+  private client = new BrevoClient({ apiKey: process.env.BREVO_API_KEY! });
 
   async sendResetCode(email: string, code: string): Promise<void> {
-    await this.mailer.sendMail({
-      to: email,
+    await this.client.transactionalEmails.sendTransacEmail({
+      to: [{ email }],
+      sender: { email: process.env.MAIL_FROM_ADDRESS!, name: 'BanaEye' },
       subject: 'BanaEye — Código de recuperación de contraseña',
-      html: `
+      htmlContent: `
         <div style="font-family: sans-serif; max-width: 480px; margin: auto;">
           <h2 style="color: #5D7B3D;">Recupera tu contraseña</h2>
           <p>Usa el siguiente código para restablecer tu contraseña. 

@@ -12,15 +12,19 @@ import { SendResetCodeUseCase } from './application/use-cases/send-reset-code.us
 import { VerifyResetCodeUseCase } from './application/use-cases/verify-reset-code.use-case';
 import { ResetPasswordUseCase } from './application/use-cases/reset-password.use-case';
 import { GetProfileUseCase } from './application/use-cases/get-profile.use-case';
-import { MailerModule } from '@nestjs-modules/mailer'
+import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
-  imports: [PrismaModule,
+  imports: [
+    PrismaModule,
     MailerModule.forRoot({
       transport: {
         host: process.env.MAIL_HOST,
         port: Number(process.env.MAIL_PORT),
         secure: false,
+        tls: {
+          rejectUnauthorized: false
+        },
         auth: {
           user: process.env.MAIL_USER,
           pass: process.env.MAIL_PASS,
@@ -80,4 +84,4 @@ import { MailerModule } from '@nestjs-modules/mailer'
     },
   ],
 })
-export class AuthModule { }
+export class AuthModule {}
